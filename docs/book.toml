@@ -1,0 +1,6 @@
+[book]
+authors = ["epiglottis"]
+language = "en"
+multilingual = false
+src = "src"
+title = "rCore"
