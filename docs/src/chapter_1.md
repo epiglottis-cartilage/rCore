@@ -4,16 +4,26 @@
 
 The first kernel instruction.
 
-## run
+## Run
 
-At the root directory
+~~At the root directory~~ for unknown reason the linker doesn't work at the root directory. So, unlucky you have to do this:
 ```sh
+cd os
 cargo build --release
-./scripts/cut-os.sh
+cd ..
 ```
+
 I don't know how to use `tmux` so do following individually
 ```sh
-./scripts/qemu.sh
+./scripts/build_cut.sh
+./scripts/qemu-debug.sh
 ./scripts/gdb.sh
 ```
- 
+
+## Changes
+
+Compared to the original rCore, flowing thins are changed:
+
+1. location of the stack, form `bss` to `data`.
+2. rename `sbss`, `ebbs` to `start_of_bss`, `end_of_bss` and claim as static usize instead of function. 
+3. update `rustsbi`.
