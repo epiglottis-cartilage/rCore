@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-
+sbi-rt = { version = "*", features = ["legacy"] }
 
 [profile.release]
 debug = true

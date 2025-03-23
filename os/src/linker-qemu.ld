@@ -29,6 +29,7 @@ SECTIONS
     erodata = .;
     sdata = .;
     .data : {
+        *(.data.stack)
         *(.data .data.*)
         *(.sdata .sdata.*)
     }
@@ -38,13 +39,13 @@ SECTIONS
     sbss_with_stack = .;
     .bss : {
         *(.bss.stack)
-        sbss = .;
+        start_of_bss = .;
         *(.bss .bss.*)
         *(.sbss .sbss.*)
     }
 
     . = ALIGN(4K);
-    ebss = .;
+    end_of_bss = .;
     ekernel = .;
 
     /DISCARD/ : {
