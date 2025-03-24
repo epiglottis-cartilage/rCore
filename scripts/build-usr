@@ -18,8 +18,6 @@ for member in members:
     os.system(f"cd user/{member};cargo build --release -p {member};cd ..")
 
 for member in members:
-    if member == "libr":
-        continue
     print(f"     Cutting {member}")
     elf_file = f"target/riscv64gc-unknown-none-elf/release/{member}"
     bin_file = f"target/riscv64gc-unknown-none-elf/release/{member}.bin"

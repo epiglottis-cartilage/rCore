@@ -15,9 +15,9 @@ cd ..
 
 I don't know how to use `tmux` so do following individually
 ```sh
-./scripts/build_cut.sh
-./scripts/qemu-debug.sh
-./scripts/gdb.sh
+./scripts/build_os
+./scripts/qemu-debug
+./scripts/gdb
 ```
 
 ## Changes
