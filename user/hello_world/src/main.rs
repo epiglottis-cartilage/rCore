@@ -6,6 +6,6 @@ extern crate libr;
 
 #[unsafe(no_mangle)]
 fn main() -> i32 {
-    println!("Hello, world! fro user\n");
+    println!("Hello, world! from user\n");
     0
 }

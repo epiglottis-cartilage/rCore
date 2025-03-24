@@ -1,6 +1,5 @@
 This is my own implication of rCore. 
 
-
 ## NOTE
 
 Using EndeavourOS x86_64.
