@@ -1,9 +1,11 @@
-#![no_main]
 #![no_std]
+#![no_main]
+
 #[macro_use]
 extern crate libr;
 
 #[unsafe(no_mangle)]
-fn main() {
+fn main() -> i32 {
     println!("Hello, world! fro user\n");
+    0
 }

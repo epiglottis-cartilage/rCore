@@ -8,11 +8,18 @@ fn syscall(id: usize, args: [usize; 3]) -> isize {
     let mut ret: isize;
     unsafe {
         asm!(
+            "mv x17, {0}",
+            "mv x10, {1}",
+            "mv x11, {2}",
+            "mv x12, {3}",
             "ecall",
-            inlateout("x10") args[0] => ret,
-            in("x11") args[1],
-            in("x12") args[2],
-            in("x17") id
+            "mv {4}, x10",
+            in(reg) id,
+            in(reg) args[0],
+            in(reg) args[1],
+            in(reg) args[2],
+            lateout(reg) ret,
+            options(nostack)
         );
     }
     ret
