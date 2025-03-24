@@ -1,4 +1,5 @@
+[build]
+target = "riscv64gc-unknown-none-elf"
+
 [target.riscv64gc-unknown-none-elf]
-rustflags = [
-    "-Clink-arg=-Tos/src/linker-qemu.ld", "-Cforce-frame-pointers=yes"
-]
+rustflags = ["-Clink-arg=-Tos/src/linker-qemu.ld", "-Cforce-frame-pointers=yes"]
