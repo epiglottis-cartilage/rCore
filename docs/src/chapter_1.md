@@ -1,5 +1,7 @@
 # [Chapter 1](https://rcore-os.cn/rCore-Tutorial-Book-v3/chapter1/index.html)
 
+**This may be out of date, goto the brach chapter1 instead!!**
+
 ## intro
 
 The first kernel instruction.
