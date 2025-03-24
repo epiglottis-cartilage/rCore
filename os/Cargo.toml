@@ -8,3 +8,4 @@ sbi-rt = { version = "0.0.3", features = ["legacy"] }
 lazy_static = { version = "1.5.0", features = ["spin_no_std"] }
 # riscv = { git = "https://github.com/rcore-os/riscv", features = ["inline-asm"] }
 riscv = { version = "0.13.0" }
+config = { path = "../config" }

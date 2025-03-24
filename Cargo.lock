@@ -3,6 +3,10 @@
 version = 4
 
 [[package]]
+name = "config"
+version = "0.1.0"
+
+[[package]]
 name = "critical-section"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -33,11 +37,15 @@ dependencies = [
 [[package]]
 name = "libr"
 version = "0.1.0"
+dependencies = [
+ "config",
+]
 
 [[package]]
 name = "os"
 version = "0.1.0"
 dependencies = [
+ "config",
  "lazy_static",
  "riscv",
  "sbi-rt",

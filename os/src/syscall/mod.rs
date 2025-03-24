@@ -10,9 +10,7 @@
 //! `sys_` then the name of the syscall. You can find functions like this in
 //! submodules, and you should also implement syscalls this way.
 
-const SYSCALL_WRITE: usize = 64;
-const SYSCALL_EXIT: usize = 93;
-const SYSCALL_YIELD: usize = 124;
+use config::syscall::SyscallID;
 
 mod fs;
 mod process;
@@ -21,11 +19,11 @@ use fs::*;
 use process::*;
 
 /// handle syscall exception with `syscall_id` and other arguments
-pub fn syscall(syscall_id: usize, args: [usize; 3]) -> isize {
+pub fn syscall(syscall_id: SyscallID, args: [usize; 3]) -> isize {
     match syscall_id {
-        SYSCALL_WRITE => sys_write(args[0], args[1] as *const u8, args[2]),
-        SYSCALL_EXIT => sys_exit(args[0] as i32),
-        SYSCALL_YIELD => sys_yield(),
-        _ => panic!("Unsupported syscall_id: {}", syscall_id),
+        SyscallID::Write => sys_write(args[0], args[1] as *const u8, args[2]),
+        SyscallID::Exit => sys_exit(args[0] as i32),
+        SyscallID::Yield => sys_yield(),
+        _ => panic!("Unsupported syscall_id: {:?}", syscall_id),
     }
 }
