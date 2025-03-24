@@ -1,0 +1,28 @@
+#!/bin/python
+
+import tomllib
+import os
+
+res = tomllib.load(open("Cargo.toml", "rb"))
+members = []
+for member in res["workspace"]["members"]:
+    tmp = list(member.split('/'))
+    if tmp[0] == 'user':
+        members.append(tmp[-1])
+
+
+
+print("Find members:", members)
+for member in members:
+    print(f"   Building {member}")
+    os.system(f"cd user/{member};cargo build --release -p {member};cd ..")
+
+for member in members:
+    if member == "libr":
+        continue
+    print(f"     Cutting {member}")
+    elf_file = f"target/riscv64gc-unknown-none-elf/release/{member}"
+    bin_file = f"target/riscv64gc-unknown-none-elf/release/{member}.bin"
+    os.system(
+        f"rust-objcopy --binary-architecture=riscv64 {elf_file} --strip-all -O binary {bin_file}"
+    )
