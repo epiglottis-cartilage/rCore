@@ -30,10 +30,11 @@ global_asm!(include_str!("trap.S"));
 /// initialize CSR `stvec` as the entry of `__alltraps`
 pub fn init() {
     unsafe extern "C" {
-        static __alltraps: usize;
+        fn __alltraps();
     }
     unsafe {
-        let mut trap = stvec::Stvec::from_bits(__alltraps);
+        let mut trap = stvec::Stvec::from_bits(0);
+        trap.set_address(__alltraps as usize);
         trap.set_trap_mode(stvec::TrapMode::Direct);
         stvec::write(trap);
     }
