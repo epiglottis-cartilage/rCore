@@ -58,7 +58,6 @@ pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
                 Interrupt::SupervisorSoft => todo!(),
                 Interrupt::MachineSoft => todo!(),
                 Interrupt::SupervisorTimer => {
-                    println!("Timer interrupt");
                     crate::timer::set_next_trigger();
                     task::suspend_current_and_run_next();
                 }
