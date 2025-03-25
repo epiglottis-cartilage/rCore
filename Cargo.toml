@@ -1,5 +1,13 @@
 [workspace]
-members = ["os", "libr", "user/hello_world", "user/store_fault", "user/power", "config"]
+members = [
+    "os",
+    "libr",
+    "config",
+    "user/power_3",
+    "user/power_5",
+    "user/power_7",
+    "user/sleep",
+]
 resolver = "3"
 
 [profile.release]
