@@ -3,19 +3,28 @@
 import tomllib
 import os
 
+base_address = 0x80400000
+step = 0x20000
+
 res = tomllib.load(open("Cargo.toml", "rb"))
 members = []
 for member in res["workspace"]["members"]:
-    tmp = list(member.split('/'))
-    if tmp[0] == 'user':
+    tmp = list(member.split("/"))
+    if tmp[0] == "user":
         members.append(tmp[-1])
 
-
+members.sort()
 
 print("Find members:", members)
-for member in members:
+for i, member in enumerate(members):
     print(f"   Building {member}")
+    os.system("pwd")
+    linker = open(f"user/{member}/src/linker.ld", "r").read()
+    linker = linker.replace(hex(base_address), hex(base_address + step * i))
+    open(f"user/{member}/src/linker.ld", "w").write(linker)
+
     os.system(f"cd user/{member};cargo build --release -p {member};cd ..")
+    # print(f"cd user/{member};cargo build --release -p {member};cd ..")
 
 for member in members:
     print(f"     Cutting {member}")

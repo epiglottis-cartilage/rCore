@@ -48,7 +48,7 @@ pub struct TaskManagerInner {
     /// id of current `Running` task
     current_task: usize,
 }
-core::sync::atomic;
+
 lazy_static! {
     /// Global variable: TASK_MANAGER
     pub static ref TASK_MANAGER: TaskManager = {

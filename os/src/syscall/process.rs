@@ -1,5 +1,5 @@
 //! App management syscalls
-use crate::task;
+use crate::{task, timer};
 
 /// task exits and submit an exit code
 pub fn sys_exit(exit_code: i32) -> ! {
@@ -16,5 +16,5 @@ pub fn sys_yield() -> isize {
 
 /// get time in milliseconds
 pub fn sys_get_time() -> isize {
-    task::get_time_ms() as isize
+    timer::get_time_ms() as isize
 }
