@@ -1,8 +1,7 @@
 [package]
-name = "power"
+name = "power_7"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
 libr = { path = "../../libr" }
-
