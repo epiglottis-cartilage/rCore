@@ -5,9 +5,11 @@ pub mod lang_items;
 mod sbi;
 #[macro_use]
 mod console;
-mod batch;
+mod loader;
 mod sync;
 mod syscall;
+mod task;
+mod timer;
 mod trap;
 
 use core::arch::global_asm;
@@ -18,9 +20,11 @@ global_asm!(include_str!("link_app.asm"));
 pub fn rust_main() -> ! {
     clear_bss();
     trap::init();
-    batch::init();
-    println!("batch::init");
-    batch::run_next_app();
+    println!("[kernel] Hello, world!");
+    trap::init();
+    loader::load_apps();
+    task::run_first_task();
+    sbi::shutdown(false);
 }
 
 fn clear_bss() {

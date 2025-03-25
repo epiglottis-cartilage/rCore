@@ -1,14 +1,20 @@
 //! App management syscalls
-use crate::batch;
+use crate::task;
 
 /// task exits and submit an exit code
 pub fn sys_exit(exit_code: i32) -> ! {
     println!("[kernel] Application exited with code {}", exit_code);
-    batch::run_next_app()
+    task::exit_current_and_run_next();
+    panic!("Unreachable in sys_exit!");
 }
 
 /// current task gives up resources for other tasks
 pub fn sys_yield() -> isize {
-    batch::suspend_current_and_run_next();
+    task::suspend_current_and_run_next();
     0
+}
+
+/// get time in milliseconds
+pub fn sys_get_time() -> isize {
+    task::get_time_ms() as isize
 }
