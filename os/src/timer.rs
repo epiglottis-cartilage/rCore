@@ -1,10 +1,9 @@
 //! RISC-V timer-related functionality
 
 use crate::sbi::set_timer;
-use config::CLOCK_FREQ;
+use config::timer::{CLOCK_FREQ, TICKS_PER_SEC};
 use riscv::register::time;
 
-const TICKS_PER_SEC: usize = 100;
 const MSEC_PER_SEC: usize = 1000;
 
 /// read the `mtime` register
