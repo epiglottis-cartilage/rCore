@@ -1,3 +1,4 @@
 /target
 /.gdb_history
 /.vscode
+/os/src/link_app.asm

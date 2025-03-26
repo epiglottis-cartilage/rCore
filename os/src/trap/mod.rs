@@ -14,14 +14,14 @@
 
 mod context;
 
-use crate::batch::run_next_app;
 use crate::syscall::syscall;
+use crate::task;
 use core::arch::global_asm;
 use riscv::{
     interrupt::{Exception, Interrupt},
     register::{
         scause::{self, Trap},
-        stval, stvec,
+        sie, stval, stvec,
     },
 };
 
@@ -40,6 +40,13 @@ pub fn init() {
     }
 }
 
+/// timer interrupt enabled
+pub fn enable_timer_interrupt() {
+    unsafe {
+        sie::set_stimer();
+    }
+}
+
 #[unsafe(no_mangle)]
 /// handle an interrupt, exception, or system call from user space
 pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
@@ -50,7 +57,10 @@ pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
             Trap::Interrupt(i) => match i {
                 Interrupt::SupervisorSoft => todo!(),
                 Interrupt::MachineSoft => todo!(),
-                Interrupt::SupervisorTimer => todo!(),
+                Interrupt::SupervisorTimer => {
+                    crate::timer::set_next_trigger();
+                    task::suspend_current_and_run_next();
+                }
                 Interrupt::MachineTimer => todo!(),
                 Interrupt::SupervisorExternal => todo!(),
                 Interrupt::MachineExternal => todo!(),
@@ -60,7 +70,7 @@ pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
                 Exception::InstructionFault => todo!(),
                 Exception::IllegalInstruction => {
                     println!("[kernel] IllegalInstruction in application, kernel killed it.");
-                    run_next_app();
+                    task::exit_current_and_run_next();
                 }
                 Exception::Breakpoint => todo!(),
                 Exception::LoadMisaligned => todo!(),
@@ -68,11 +78,11 @@ pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
                 Exception::StoreMisaligned => todo!(),
                 Exception::StoreFault => {
                     println!("[kernel] PageFault in application, kernel killed it.");
-                    run_next_app();
+                    task::exit_current_and_run_next();
                 }
                 Exception::UserEnvCall => {
                     cx.sepc += 4;
-                    cx.x[10] = syscall(cx.x[17], [cx.x[10], cx.x[11], cx.x[12]]) as usize;
+                    cx.x[10] = syscall(cx.x[17].into(), [cx.x[10], cx.x[11], cx.x[12]]) as usize;
                 }
                 Exception::SupervisorEnvCall => todo!(),
                 Exception::MachineEnvCall => todo!(),
@@ -80,7 +90,7 @@ pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
                 Exception::LoadPageFault => todo!(),
                 Exception::StorePageFault => {
                     println!("[kernel] PageFault in application, kernel killed it.");
-                    run_next_app();
+                    task::exit_current_and_run_next();
                 }
             },
         }

@@ -38,7 +38,6 @@ SECTIONS
     edata = .;
     sbss_with_stack = .;
     .bss : {
-        *(.bss.stack)
         start_of_bss = .;
         *(.bss .bss.*)
         *(.sbss .sbss.*)

@@ -35,3 +35,9 @@ pub fn write(fd: usize, buf: &[u8]) -> isize {
 pub fn exit(exit_code: i32) -> ! {
     sys_exit(exit_code);
 }
+pub fn r#yield() -> isize {
+    sys_yield()
+}
+pub fn get_time() -> isize {
+    sys_get_time()
+}
