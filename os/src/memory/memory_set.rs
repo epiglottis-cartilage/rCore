@@ -322,14 +322,14 @@ impl MapArea {
     }
     #[allow(unused)]
     pub fn shrink_to(&mut self, page_table: &mut PageTable, new_end: VirtPageNum) {
-        for vpn in new_end..=self.vpn_range.end {
+        for vpn in new_end..self.vpn_range.end {
             self.unmap_one(page_table, vpn)
         }
         self.vpn_range = (self.vpn_range.start..new_end).into();
     }
     #[allow(unused)]
     pub fn append_to(&mut self, page_table: &mut PageTable, new_end: VirtPageNum) {
-        for vpn in self.vpn_range.end..=new_end {
+        for vpn in self.vpn_range.end..new_end {
             self.map_one(page_table, vpn)
         }
         self.vpn_range = (self.vpn_range.start..new_end).into();
@@ -394,5 +394,5 @@ pub fn remap_test() {
             .unwrap()
             .executable(),
     );
-    println!("remap_test passed!");
+    log::debug!("remap_test passed!");
 }

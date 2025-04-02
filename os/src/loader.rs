@@ -10,7 +10,7 @@ pub fn get_num_app() -> usize {
 /// get applications data
 pub fn get_app_data(app_id: usize) -> &'static [u8] {
     use crate::label::num_app;
-    log::trace!("loading app[{}]", app_id);
+    log::info!("loading app[{}]", app_id);
     log::trace!("app_num={} at {:X?}", num_app, core::ptr::addr_of!(num_app));
     let app_start = unsafe {
         core::slice::from_raw_parts(core::ptr::addr_of!(num_app).add(1), get_num_app() + 1)

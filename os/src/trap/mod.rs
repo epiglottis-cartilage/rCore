@@ -36,7 +36,6 @@ pub fn init() {
 fn set_kernel_trap_entry() {
     unsafe {
         let mut trap = stvec::Stvec::from_bits(0);
-        println!("kernel trap entry: {:#x}", trap_from_kernel as usize);
         trap.set_address(trap_from_kernel as usize);
         trap.set_trap_mode(stvec::TrapMode::Direct);
         stvec::write(trap);
