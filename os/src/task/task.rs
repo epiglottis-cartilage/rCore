@@ -10,7 +10,10 @@ pub struct TaskControlBlock {
     pub context: TaskContext,
     pub memory_set: MemorySet,
     pub trap_cx_ppn: PhysPageNum,
+    #[allow(unused)]
     pub base_size: usize,
+    pub heap_bottom: usize,
+    pub program_brk: usize,
 }
 
 #[derive(Copy, Clone, PartialEq)]
@@ -43,6 +46,8 @@ impl TaskControlBlock {
             memory_set,
             trap_cx_ppn: trap_location,
             base_size: user_sp,
+            heap_bottom: user_sp,
+            program_brk: user_sp,
         };
         // prepare TrapContext in user space
         let trap_cx = task_control_block.get_trap_cx();
@@ -53,6 +58,7 @@ impl TaskControlBlock {
             kernel_stack_top,
             trap_handler as usize,
         );
+        println!("{:#X?}", trap_cx);
         task_control_block
     }
 

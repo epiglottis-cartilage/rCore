@@ -3,6 +3,7 @@
 #![feature(alloc_error_handler)]
 #![feature(step_trait)]
 #![feature(new_range_api)]
+#![feature(fn_align)]
 
 pub mod lang_items;
 
@@ -36,8 +37,8 @@ pub fn rust_main() -> ! {
     memory::remap_test();
     trap::init();
     //trap::enable_interrupt();
-    // trap::enable_timer_interrupt();
-    // timer::set_next_trigger();
+    trap::enable_timer_interrupt();
+    timer::set_next_trigger();
     task::run_first_task();
     sbi::shutdown(false);
 }

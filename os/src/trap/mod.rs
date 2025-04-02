@@ -33,6 +33,13 @@ pub fn init() {
     set_kernel_trap_entry();
 }
 
+/// timer interrupt enabled
+pub fn enable_timer_interrupt() {
+    unsafe {
+        sie::set_stimer();
+    }
+}
+
 fn set_kernel_trap_entry() {
     unsafe {
         let mut trap = stvec::Stvec::from_bits(0);
@@ -53,7 +60,8 @@ fn set_user_trap_entry() {
 
 /// Unimplement: traps/interrupts/exceptions from kernel mode
 /// Todo: Chapter 9: I/O device
-pub fn trap_from_kernel() -> ! {
+#[repr(align(16))]
+fn trap_from_kernel() -> ! {
     let scause = scause::read(); // get trap cause
     let stval = stval::read(); // get extra value
     if let Ok(reason) = scause.cause().try_into::<Interrupt, Exception>() {
@@ -105,16 +113,9 @@ pub fn trap_from_kernel() -> ! {
     panic!("a trap from kernel!");
 }
 
-/// timer interrupt enabled
-pub fn enable_timer_interrupt() {
-    unsafe {
-        sie::set_stimer();
-    }
-}
-
-#[unsafe(no_mangle)]
 /// handle an interrupt, exception, or system call from user space
-pub fn trap_handler() -> ! {
+#[repr(align(16))]
+pub(crate) fn trap_handler() -> ! {
     set_kernel_trap_entry();
     let cx = task::current_trap_cx();
     let scause = scause::read(); // get trap cause
@@ -176,7 +177,6 @@ unsafe extern "C" {
     pub(crate) unsafe fn __restore();
 }
 
-#[unsafe(no_mangle)]
 /// set the new addr of __restore asm function in TRAMPOLINE page,
 /// set the reg a0 = trap_cx_ptr, reg a1 = phy addr of usr page table,
 /// finally, jump to new addr of __restore asm function
