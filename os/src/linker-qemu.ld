@@ -38,13 +38,13 @@ SECTIONS
     edata = .;
     sbss_with_stack = .;
     .bss : {
-        start_of_bss = .;
+        sbss = .;
         *(.bss .bss.*)
         *(.sbss .sbss.*)
     }
 
     . = ALIGN(4K);
-    end_of_bss = .;
+    ebss = .;
     ekernel = .;
 
     /DISCARD/ : {

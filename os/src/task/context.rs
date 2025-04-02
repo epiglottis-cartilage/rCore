@@ -24,9 +24,7 @@ impl TaskContext {
 
     /// set task context {__restore ASM funciton, kernel stack, s_0..12 }
     pub fn goto_restore(kstack_ptr: usize) -> Self {
-        unsafe extern "C" {
-            fn __restore();
-        }
+        use crate::trap::__restore;
         Self {
             ra: __restore as usize,
             sp: kstack_ptr,

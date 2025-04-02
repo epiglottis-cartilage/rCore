@@ -19,9 +19,9 @@ print("Find members:", members)
 for i, member in enumerate(members):
     print(f"   Building {member}")
     os.system("pwd")
-    linker = open(f"user/{member}/src/linker.ld", "r").read()
-    linker = linker.replace(hex(base_address), hex(base_address + step * i))
-    open(f"user/{member}/src/linker.ld", "w").write(linker)
+    # linker = open(f"user/{member}/src/linker.ld", "r").read()
+    # linker = linker.replace(hex(base_address), hex(base_address + step * i))
+    # open(f"user/{member}/src/linker.ld", "w").write(linker)
 
     os.system(f"cd user/{member};cargo build --release -p {member};cd ..")
     # print(f"cd user/{member};cargo build --release -p {member};cd ..")

@@ -16,7 +16,8 @@ mod context;
 
 use crate::syscall::syscall;
 use crate::task;
-use core::arch::global_asm;
+use config::memory::{TRAMPOLINE, TRAP_CONTEXT};
+use core::arch::{asm, global_asm};
 use riscv::{
     interrupt::{Exception, Interrupt},
     register::{
@@ -29,15 +30,32 @@ global_asm!(include_str!("trap.S"));
 
 /// initialize CSR `stvec` as the entry of `__alltraps`
 pub fn init() {
-    unsafe extern "C" {
-        fn __alltraps();
-    }
+    set_kernel_trap_entry();
+}
+
+fn set_kernel_trap_entry() {
     unsafe {
         let mut trap = stvec::Stvec::from_bits(0);
-        trap.set_address(__alltraps as usize);
+        trap.set_address(trap_from_kernel as usize);
         trap.set_trap_mode(stvec::TrapMode::Direct);
         stvec::write(trap);
     }
+}
+
+fn set_user_trap_entry() {
+    unsafe {
+        let mut trap = stvec::Stvec::from_bits(0);
+        trap.set_address(TRAMPOLINE);
+        trap.set_trap_mode(stvec::TrapMode::Direct);
+        stvec::write(trap);
+    }
+}
+
+#[unsafe(no_mangle)]
+/// Unimplement: traps/interrupts/exceptions from kernel mode
+/// Todo: Chapter 9: I/O device
+pub fn trap_from_kernel() -> ! {
+    panic!("a trap from kernel!");
 }
 
 /// timer interrupt enabled
@@ -49,7 +67,9 @@ pub fn enable_timer_interrupt() {
 
 #[unsafe(no_mangle)]
 /// handle an interrupt, exception, or system call from user space
-pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
+pub fn trap_handler() -> ! {
+    set_kernel_trap_entry();
+    let cx = task::current_trap_cx();
     let scause = scause::read(); // get trap cause
     let stval = stval::read(); // get extra value
     if let Ok(reason) = scause.cause().try_into::<Interrupt, Exception>() {
@@ -101,7 +121,32 @@ pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
             stval
         );
     }
-    cx
+    trap_return();
 }
 
+unsafe extern "C" {
+    pub(crate) unsafe fn __alltraps();
+    pub(crate) unsafe fn __restore();
+}
+
+#[unsafe(no_mangle)]
+/// set the new addr of __restore asm function in TRAMPOLINE page,
+/// set the reg a0 = trap_cx_ptr, reg a1 = phy addr of usr page table,
+/// finally, jump to new addr of __restore asm function
+pub fn trap_return() -> ! {
+    set_user_trap_entry();
+    let trap_cx_ptr = TRAP_CONTEXT;
+    let user_satp = task::current_user_token().bits();
+    let restore_va = __restore as usize - __alltraps as usize + TRAMPOLINE;
+    unsafe {
+        asm!(
+            "fence.i",
+            "jr {restore_va}",             // jump to new addr of __restore asm function
+            restore_va = in(reg) restore_va,
+            in("a0") trap_cx_ptr,      // a0 = virt addr of Trap Context
+            in("a1") user_satp,        // a1 = phy addr of usr page table
+            options(noreturn)
+        );
+    }
+}
 pub use context::TrapContext;

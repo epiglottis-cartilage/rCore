@@ -15,11 +15,13 @@ mod switch;
 #[allow(clippy::module_inception)]
 mod task;
 
-use crate::loader::{get_num_app, init_app_cx};
+use crate::loader;
 use crate::sbi::shutdown;
 use crate::sync::UPSafeCell;
-use config::MAX_APP_NUM;
+use crate::trap::TrapContext;
+use alloc::vec::Vec;
 use lazy_static::*;
+use riscv::register::satp::Satp;
 use switch::__switch;
 use task::{TaskControlBlock, TaskStatus};
 
@@ -42,24 +44,19 @@ pub struct TaskManager {
 }
 
 /// Inner of Task Manager
-pub struct TaskManagerInner {
-    /// task list
-    tasks: [TaskControlBlock; MAX_APP_NUM],
-    /// id of current `Running` task
+struct TaskManagerInner {
+    tasks: Vec<TaskControlBlock>,
     current_task: usize,
 }
 
 lazy_static! {
-    /// Global variable: TASK_MANAGER
     pub static ref TASK_MANAGER: TaskManager = {
-        let num_app = get_num_app();
-        let mut tasks = [TaskControlBlock {
-            task_cx: TaskContext::zero_init(),
-            task_status: TaskStatus::UnInit,
-        }; MAX_APP_NUM];
-        for (i, task) in tasks.iter_mut().enumerate() {
-            task.task_cx = TaskContext::goto_restore(init_app_cx(i));
-            task.task_status = TaskStatus::Ready;
+        println!("init TASK_MANAGER");
+        let num_app = loader::get_num_app();
+        println!("num_app = {}", num_app);
+        let mut tasks: Vec<TaskControlBlock> = Vec::new();
+        for i in 0..num_app {
+            tasks.push(TaskControlBlock::new(loader::get_app_data(i), i));
         }
         TaskManager {
             num_app,
@@ -72,22 +69,21 @@ lazy_static! {
         }
     };
 }
-
 impl TaskManager {
     /// Run the first task in task list.
     ///
     /// Generally, the first task in task list is an idle task (we call it zero process later).
-    /// But in ch3, we load apps statically, so the first task is a real app.
+    /// But in ch4, we load apps statically, so the first task is a real app.
     fn run_first_task(&self) -> ! {
         let mut inner = self.inner.exclusive_access();
-        let task0 = &mut inner.tasks[0];
-        task0.task_status = TaskStatus::Running;
-        let next_task_cx_ptr = &task0.task_cx as *const TaskContext;
+        let next_task = &mut inner.tasks[0];
+        next_task.status = TaskStatus::Running;
+        let next_task_cx_ptr = &next_task.context as *const TaskContext;
         drop(inner);
         let mut _unused = TaskContext::zero_init();
         // before this, we should drop local variables that must be dropped manually
         unsafe {
-            __switch(&mut _unused as *mut TaskContext, next_task_cx_ptr);
+            __switch(&mut _unused as *mut _, next_task_cx_ptr);
         }
         panic!("unreachable in run_first_task!");
     }
@@ -95,18 +91,18 @@ impl TaskManager {
     /// Change the status of current `Running` task into `Ready`.
     fn mark_current_suspended(&self) {
         let mut inner = self.inner.exclusive_access();
-        let current = inner.current_task;
-        inner.tasks[current].task_status = TaskStatus::Ready;
+        let cur = inner.current_task;
+        inner.tasks[cur].status = TaskStatus::Ready;
     }
 
     /// Change the status of current `Running` task into `Exited`.
     fn mark_current_exited(&self) {
         let mut inner = self.inner.exclusive_access();
-        let current = inner.current_task;
-        inner.tasks[current].task_status = TaskStatus::Exited;
+        let cur = inner.current_task;
+        inner.tasks[cur].status = TaskStatus::Exited;
     }
 
-    /// Find next task to run and return app id.
+    /// Find next task to run and return task id.
     ///
     /// In this case, we only return the first `Ready` task in task list.
     fn find_next_task(&self) -> Option<usize> {
@@ -114,7 +110,19 @@ impl TaskManager {
         let current = inner.current_task;
         (current + 1..current + self.num_app + 1)
             .map(|id| id % self.num_app)
-            .find(|id| inner.tasks[*id].task_status == TaskStatus::Ready)
+            .find(|id| inner.tasks[*id].status == TaskStatus::Ready)
+    }
+
+    /// Get the current 'Running' task's token.
+    fn get_current_token(&self) -> Satp {
+        let inner = self.inner.exclusive_access();
+        inner.tasks[inner.current_task].get_user_token()
+    }
+
+    /// Get the current 'Running' task's trap contexts.
+    fn get_current_trap_cx(&self) -> &'static mut TrapContext {
+        let inner = self.inner.exclusive_access();
+        inner.tasks[inner.current_task].get_trap_cx()
     }
 
     /// Switch current `Running` task to the task we have found,
@@ -123,10 +131,10 @@ impl TaskManager {
         if let Some(next) = self.find_next_task() {
             let mut inner = self.inner.exclusive_access();
             let current = inner.current_task;
-            inner.tasks[next].task_status = TaskStatus::Running;
+            inner.tasks[next].status = TaskStatus::Running;
             inner.current_task = next;
-            let current_task_cx_ptr = &mut inner.tasks[current].task_cx as *mut TaskContext;
-            let next_task_cx_ptr = &inner.tasks[next].task_cx as *const TaskContext;
+            let current_task_cx_ptr = &mut inner.tasks[current].context as *mut TaskContext;
+            let next_task_cx_ptr = &inner.tasks[next].context as *const TaskContext;
             drop(inner);
             // before this, we should drop local variables that must be dropped manually
             unsafe {
@@ -170,4 +178,14 @@ pub fn suspend_current_and_run_next() {
 pub fn exit_current_and_run_next() {
     mark_current_exited();
     run_next_task();
+}
+
+/// Get the current 'Running' task's token.
+pub fn current_user_token() -> Satp {
+    TASK_MANAGER.get_current_token()
+}
+
+/// Get the current 'Running' task's trap contexts.
+pub fn current_trap_cx() -> &'static mut TrapContext {
+    TASK_MANAGER.get_current_trap_cx()
 }
