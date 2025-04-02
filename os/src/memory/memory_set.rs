@@ -311,7 +311,6 @@ impl MapArea {
     }
     pub fn map(&mut self, page_table: &mut PageTable) {
         for vpn in self.vpn_range {
-            log::trace!("mapping {:X?}", vpn);
             self.map_one(page_table, vpn);
         }
     }

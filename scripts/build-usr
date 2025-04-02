@@ -26,10 +26,10 @@ for i, member in enumerate(members):
     os.system(f"cd user/{member};cargo build --release -p {member};cd ..")
     # print(f"cd user/{member};cargo build --release -p {member};cd ..")
 
-for member in members:
-    print(f"     Cutting {member}")
-    elf_file = f"target/riscv64gc-unknown-none-elf/release/{member}"
-    bin_file = f"target/riscv64gc-unknown-none-elf/release/{member}.bin"
-    os.system(
-        f"rust-objcopy --binary-architecture=riscv64 {elf_file} --strip-all -O binary {bin_file}"
-    )
+# for member in members:
+#     print(f"     Cutting {member}")
+#     elf_file = f"target/riscv64gc-unknown-none-elf/release/{member}"
+#     bin_file = f"target/riscv64gc-unknown-none-elf/release/{member}.bin"
+#     os.system(
+#         f"rust-objcopy --binary-architecture=riscv64 {elf_file} --strip-all -O binary {bin_file}"
+#     )

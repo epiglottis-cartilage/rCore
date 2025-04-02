@@ -36,8 +36,8 @@ pub fn rust_main() -> ! {
     memory::remap_test();
     trap::init();
     //trap::enable_interrupt();
-    trap::enable_timer_interrupt();
-    timer::set_next_trigger();
+    // trap::enable_timer_interrupt();
+    // timer::set_next_trigger();
     task::run_first_task();
     sbi::shutdown(false);
 }

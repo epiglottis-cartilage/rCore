@@ -36,6 +36,7 @@ pub fn init() {
 fn set_kernel_trap_entry() {
     unsafe {
         let mut trap = stvec::Stvec::from_bits(0);
+        println!("kernel trap entry: {:#x}", trap_from_kernel as usize);
         trap.set_address(trap_from_kernel as usize);
         trap.set_trap_mode(stvec::TrapMode::Direct);
         stvec::write(trap);
@@ -51,10 +52,57 @@ fn set_user_trap_entry() {
     }
 }
 
-#[unsafe(no_mangle)]
 /// Unimplement: traps/interrupts/exceptions from kernel mode
 /// Todo: Chapter 9: I/O device
 pub fn trap_from_kernel() -> ! {
+    let scause = scause::read(); // get trap cause
+    let stval = stval::read(); // get extra value
+    if let Ok(reason) = scause.cause().try_into::<Interrupt, Exception>() {
+        match reason {
+            Trap::Interrupt(i) => match i {
+                Interrupt::SupervisorSoft => todo!(),
+                Interrupt::MachineSoft => todo!(),
+                Interrupt::SupervisorTimer => {
+                    crate::timer::set_next_trigger();
+                    task::suspend_current_and_run_next();
+                }
+                Interrupt::MachineTimer => todo!(),
+                Interrupt::SupervisorExternal => todo!(),
+                Interrupt::MachineExternal => todo!(),
+            },
+            Trap::Exception(e) => match e {
+                Exception::InstructionMisaligned => todo!(),
+                Exception::InstructionFault => todo!(),
+                Exception::IllegalInstruction => {
+                    println!("[kernel] IllegalInstruction in application, kernel killed it.");
+                    task::exit_current_and_run_next();
+                }
+                Exception::Breakpoint => todo!(),
+                Exception::LoadMisaligned => todo!(),
+                Exception::LoadFault => todo!(),
+                Exception::StoreMisaligned => todo!(),
+                Exception::StoreFault => {
+                    println!("[kernel] PageFault in application, kernel killed it.");
+                    task::exit_current_and_run_next();
+                }
+                Exception::UserEnvCall => todo!(),
+                Exception::SupervisorEnvCall => todo!(),
+                Exception::MachineEnvCall => todo!(),
+                Exception::InstructionPageFault => todo!(),
+                Exception::LoadPageFault => todo!(),
+                Exception::StorePageFault => {
+                    println!("[kernel] PageFault in application, kernel killed it.");
+                    task::exit_current_and_run_next();
+                }
+            },
+        }
+    } else {
+        panic!(
+            "Unsupported trap {:?}, stval = {:#x}!",
+            scause.cause(),
+            stval
+        );
+    }
     panic!("a trap from kernel!");
 }
 

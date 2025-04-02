@@ -51,9 +51,9 @@ struct TaskManagerInner {
 
 lazy_static! {
     pub static ref TASK_MANAGER: TaskManager = {
-        println!("init TASK_MANAGER");
+        log::info!("init TASK_MANAGER");
         let num_app = loader::get_num_app();
-        println!("num_app = {}", num_app);
+        log::info!("num_app = {}", num_app);
         let mut tasks: Vec<TaskControlBlock> = Vec::new();
         for i in 0..num_app {
             tasks.push(TaskControlBlock::new(loader::get_app_data(i), i));
