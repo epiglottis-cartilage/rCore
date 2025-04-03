@@ -1,4 +1,3 @@
 #!/bin/sh
 
-scripts/build-usr
-scripts/build-os
+scripts/build-usr && scripts/build-os

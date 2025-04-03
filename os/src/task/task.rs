@@ -58,7 +58,6 @@ impl TaskControlBlock {
             kernel_stack_top,
             trap_handler as usize,
         );
-        println!("{:#X?}", trap_cx);
         task_control_block
     }
 
