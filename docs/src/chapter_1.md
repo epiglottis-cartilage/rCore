@@ -27,5 +27,4 @@ I don't know how to use `tmux` so do following individually
 Compared to the original rCore, flowing thins are changed:
 
 1. location of the stack, form `bss` to `data`.
-2. rename `sbss`, `ebbs` to `start_of_bss`, `end_of_bss` and claim as static usize instead of function. 
-3. update `rustsbi`.
+2. update `rustsbi`.

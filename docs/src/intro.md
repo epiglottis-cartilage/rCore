@@ -19,3 +19,7 @@ location of `.cargo/` is important, make sure they are put at correct location
 ## helpful
 
 [turn off stupid error message from rust-analyzer](https://github.com/rust-lang/vscode-rust/issues/729)
+
+## BUGS
+
+- [ ] `sbss`, `ebss` are not used correctly in chapter 1,2,3 
