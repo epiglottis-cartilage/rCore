@@ -4,6 +4,7 @@ use std::io::{Result, Write};
 fn main() {
     println!("cargo:rerun-if-changed=/user/");
     println!("cargo:rerun-if-changed={}", TARGET_PATH);
+    println!("cargo:rustc-env=LOG=TRACE");
     insert_app_data().unwrap();
 }
 
@@ -26,8 +27,8 @@ fn insert_app_data() -> Result<()> {
         r#"
     .align 3
     .section .data
-    .global _num_app
-_num_app:
+    .global num_app
+num_app:
     .quad {}"#,
         apps.len()
     )?;
@@ -46,7 +47,7 @@ _num_app:
     .global app_{0}_start
     .global app_{0}_end
 app_{0}_start:
-    .incbin "{2}{1}.bin"
+    .incbin "{2}{1}"
 app_{0}_end:"#,
             idx, app, TARGET_PATH
         )?;

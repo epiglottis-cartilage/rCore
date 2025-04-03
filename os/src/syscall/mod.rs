@@ -25,6 +25,8 @@ pub fn syscall(syscall_id: SyscallID, args: [usize; 3]) -> isize {
         SyscallID::Exit => sys_exit(args[0] as i32),
         SyscallID::Yield => sys_yield(),
         SyscallID::GetTime => sys_get_time(),
+        SyscallID::Sbrk => sys_sbrk(args[0] as isize),
+        // SyscallID::Read => sys_read(args[0], args[1] as *mut u8, args[2]),
         _ => panic!("Unsupported syscall_id: {:?}", syscall_id),
     }
 }

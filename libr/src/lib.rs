@@ -41,3 +41,6 @@ pub fn r#yield() -> isize {
 pub fn get_time() -> isize {
     sys_get_time()
 }
+pub fn sbrk(delta: isize) -> isize {
+    sys_sbrk(delta)
+}

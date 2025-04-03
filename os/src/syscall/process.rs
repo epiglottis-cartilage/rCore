@@ -18,3 +18,12 @@ pub fn sys_yield() -> isize {
 pub fn sys_get_time() -> isize {
     timer::get_time_ms() as isize
 }
+
+/// change data segment size
+pub fn sys_sbrk(size: isize) -> isize {
+    if let Some(old_brk) = task::change_program_brk(size) {
+        old_brk as _
+    } else {
+        -1
+    }
+}
