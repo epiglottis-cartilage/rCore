@@ -7,6 +7,9 @@ members = [
     "user/power_5",
     "user/power_7",
     "user/sleep",
+    "user/load_fault",
+    "user/store_fault",
+    "user/sbrk_test",
 ]
 resolver = "3"
 

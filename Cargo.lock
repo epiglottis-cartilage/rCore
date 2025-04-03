@@ -59,6 +59,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "load_fault"
+version = "0.1.0"
+dependencies = [
+ "libr",
+]
+
+[[package]]
 name = "lock_api"
 version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -179,6 +186,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6e36312fb5ddc10d08ecdc65187402baba4ac34585cb9d1b78522ae2358d890"
 
 [[package]]
+name = "sbrk_test"
+version = "0.1.0"
+dependencies = [
+ "libr",
+]
+
+[[package]]
 name = "scopeguard"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -204,6 +218,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5b9eb1a2f4c41445a3a0ff9abc5221c5fcd28e1f13cd7c0397706f9ac938ddb0"
 dependencies = [
  "lock_api",
+]
+
+[[package]]
+name = "store_fault"
+version = "0.1.0"
+dependencies = [
+ "libr",
 ]
 
 [[package]]
