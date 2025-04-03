@@ -131,8 +131,7 @@ impl PageTable {
     pub fn token(&self) -> satp::Satp {
         let mut token = satp::Satp::from_bits(0);
         token.set_ppn(self.root_ppn.0);
-        token.set_mode(satp::Mode::Sv39);
-        debug_assert_eq!(token.bits(), 8usize << 60 | self.root_ppn.0);
+        token.set_mode(config::memory::VA_MODE);
         token
     }
 }

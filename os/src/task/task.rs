@@ -28,7 +28,7 @@ impl TaskControlBlock {
     pub fn new(elf_data: &[u8], app_id: usize) -> Self {
         // memory_set with elf program headers/trampoline/trap context/user stack
         let (memory_set, user_sp, entry_point) = MemorySet::from_elf(elf_data);
-        let trap_location = memory_set
+        let trap_cx_ppn = memory_set
             .translate(VirtAddr::from(TRAP_CONTEXT).into())
             .unwrap()
             .ppn();
@@ -44,7 +44,7 @@ impl TaskControlBlock {
             status,
             context: TaskContext::goto_restore(kernel_stack_top),
             memory_set,
-            trap_cx_ppn: trap_location,
+            trap_cx_ppn,
             base_size: user_sp,
             heap_bottom: user_sp,
             program_brk: user_sp,

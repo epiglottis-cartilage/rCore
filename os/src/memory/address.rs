@@ -1,23 +1,8 @@
 //! Implementation of physical and virtual address and page number.
 
 use super::PageTableEntry;
-use config::memory::{PAGE_SIZE, PAGE_SIZE_BITS};
+use config::memory::*;
 use core::fmt::{self, Debug, Formatter};
-use riscv::register::satp::Mode;
-
-/// physical address
-const VA_MODE: Mode = Mode::Sv39;
-const PA_WIDTH: usize = 56;
-const VA_WIDTH: usize = match VA_MODE {
-    Mode::Bare => panic!("Bare mode is not supported in VirtAddr"),
-    Mode::Sv39 => 39,
-    Mode::Sv48 => 48,
-    Mode::Sv57 => 57,
-    Mode::Sv64 => 64,
-};
-
-const PPN_WIDTH: usize = PA_WIDTH - PAGE_SIZE_BITS;
-const VPN_WIDTH: usize = VA_WIDTH - PAGE_SIZE_BITS;
 
 /// Definitions
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
