@@ -6,6 +6,7 @@ pub enum SyscallID {
     Exit = 93,
     Yield = 124,
     GetTime = 169,
+    Sbrk = 214,
 }
 impl From<usize> for SyscallID {
     fn from(value: usize) -> Self {
@@ -16,6 +17,7 @@ impl From<usize> for SyscallID {
             93 => SyscallID::Exit,
             124 => SyscallID::Yield,
             169 => SyscallID::GetTime,
+            214 => SyscallID::Sbrk,
             _ => panic!("Invalid SyscallID: {}", value), // Handle invalid values
         }
     }

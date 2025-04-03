@@ -142,9 +142,8 @@ pub(crate) fn trap_handler() -> ! {
                 }
                 Exception::Breakpoint => todo!(),
                 Exception::LoadMisaligned => todo!(),
-                Exception::LoadFault => todo!(),
                 Exception::StoreMisaligned => todo!(),
-                Exception::StoreFault => {
+                Exception::LoadFault | Exception::StoreFault => {
                     println!("[kernel] PageFault in application, kernel killed it.");
                     task::exit_current_and_run_next();
                 }
@@ -155,8 +154,7 @@ pub(crate) fn trap_handler() -> ! {
                 Exception::SupervisorEnvCall => todo!(),
                 Exception::MachineEnvCall => todo!(),
                 Exception::InstructionPageFault => todo!(),
-                Exception::LoadPageFault => todo!(),
-                Exception::StorePageFault => {
+                Exception::LoadPageFault | Exception::StorePageFault => {
                     println!("[kernel] PageFault in application, kernel killed it.");
                     task::exit_current_and_run_next();
                 }
