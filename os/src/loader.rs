@@ -11,18 +11,9 @@ pub fn app_number() -> usize {
 
 /// get applications data
 pub fn get_app_data(app_id: usize) -> &'static [u8] {
-    use crate::label::app_address;
-    log::info!("loading app[{}] : {}", app_id, APP[app_id]);
-    let app_start = unsafe {
-        core::slice::from_raw_parts(app_address as usize as *const usize, app_number() + 1)
-    };
+    log::debug!("app_address: {:X?}", APP_DATA[app_id].as_ptr() as usize);
     assert!(app_id < app_number());
-    unsafe {
-        core::slice::from_raw_parts(
-            app_start[app_id] as *const u8,
-            app_start[app_id + 1] - app_start[app_id],
-        )
-    }
+    return APP_DATA[app_id];
 }
 
 #[allow(unused)]

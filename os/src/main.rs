@@ -23,7 +23,6 @@ extern crate alloc;
 
 use core::arch::global_asm;
 global_asm!(include_str!("entry.asm"));
-global_asm!(include_str!("link_app.S"));
 
 use log::*;
 
@@ -36,7 +35,6 @@ pub fn rust_main() -> ! {
     info!("back to world!");
     memory::remap_test();
     trap::init();
-    //trap::enable_interrupt();
     trap::enable_timer_interrupt();
     timer::set_next_trigger();
     task::run_first_task();

@@ -60,7 +60,7 @@ fn set_user_trap_entry() {
 
 /// Unimplement: traps/interrupts/exceptions from kernel mode
 /// Todo: Chapter 9: I/O device
-#[repr(align(16))]
+#[repr(align(4))]
 fn trap_from_kernel() -> ! {
     let scause = scause::read(); // get trap cause
     let stval = stval::read(); // get extra value
@@ -114,7 +114,7 @@ fn trap_from_kernel() -> ! {
 }
 
 /// handle an interrupt, exception, or system call from user space
-#[repr(align(16))]
+#[repr(align(4))]
 pub(crate) fn trap_handler() -> ! {
     set_kernel_trap_entry();
     let cx = task::current_trap_cx();
