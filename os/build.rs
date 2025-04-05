@@ -11,7 +11,7 @@ fn main() {
 static TARGET_PATH: &str = "target/riscv64gc-unknown-none-elf/release/";
 
 fn insert_app_data() -> Result<()> {
-    let mut f = File::create("src/link_app.asm").unwrap();
+    let mut f = File::create("src/link_app.S").unwrap();
     let mut apps: Vec<_> = read_dir("../user/")
         .unwrap()
         .into_iter()
@@ -27,10 +27,8 @@ fn insert_app_data() -> Result<()> {
         r#"
     .align 3
     .section .data
-    .global num_app
-num_app:
-    .quad {}"#,
-        apps.len()
+    .global app_address
+app_address:"#
     )?;
 
     for i in 0..apps.len() {
@@ -52,5 +50,14 @@ app_{0}_end:"#,
             idx, app, TARGET_PATH
         )?;
     }
+
+
+    let mut f = File::create("src/app.rs").unwrap();
+    writeln!(f, "pub const APP: [&str; {}] = [", apps.len(),).unwrap();
+    for app in apps {
+        writeln!(f, "    \"{0}\",", app).unwrap();
+    }
+    writeln!(f, "];").unwrap();
+    
     Ok(())
 }
