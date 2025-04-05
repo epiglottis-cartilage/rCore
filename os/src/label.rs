@@ -11,5 +11,4 @@ unsafe extern "C" {
     pub safe fn ekernel();
     pub safe fn strampoline();
 
-    pub safe fn app_address();
 }
