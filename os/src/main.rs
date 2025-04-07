@@ -44,6 +44,10 @@ pub fn rust_main() -> ! {
 /// Clear the .bss section
 fn clear_bss() {
     unsafe {
-        (label::sbss as usize..label::ebss as usize).for_each(|a| (a as *mut u8).write_volatile(0))
+        core::slice::from_raw_parts_mut(
+            label::sbss as usize as *mut u8,
+            label::ebss as usize - label::sbss as usize,
+        )
+        .fill(0);
     };
 }

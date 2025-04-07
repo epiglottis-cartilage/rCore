@@ -57,6 +57,7 @@ lazy_static! {
         log::info!("init TASK_MANAGER");
         let num_app = loader::app_number();
         log::info!("num_app = {}", num_app);
+        loader::list_apps();
         let mut tasks: Vec<TaskControlBlock> = Vec::new();
         for i in 0..num_app {
             tasks.push(TaskControlBlock::new(loader::get_app_data(i), i));

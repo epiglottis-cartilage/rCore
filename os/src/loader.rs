@@ -23,7 +23,5 @@ pub fn get_app_data_by_name(name: &str) -> Option<&'static [u8]> {
 }
 ///list all apps
 pub fn list_apps() {
-    println!("/**** APPS ****");
-    println!("{:#?}", APP);
-    println!("**************/");
+    log::debug!("/**** APPS ****\n{:#?}\n", APP);
 }
