@@ -12,6 +12,7 @@ fn main() -> i32 {
     println!("Into Test load_fault, we will insert an invalid load operation...");
     println!("Kernel should kill this application!");
     unsafe {
+        #[allow(invalid_null_arguments)]
         let _i = read_volatile(null_mut::<u8>());
     }
     0

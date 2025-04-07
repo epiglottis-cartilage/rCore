@@ -149,7 +149,10 @@ pub(crate) fn trap_handler() -> ! {
                 }
                 Exception::UserEnvCall => {
                     cx.sepc += 4;
-                    cx.x[10] = syscall(cx.x[17].into(), [cx.x[10], cx.x[11], cx.x[12]]) as usize;
+                    cx.x[10] = syscall(
+                        unsafe { core::mem::transmute(cx.x[17]) },
+                        [cx.x[10], cx.x[11], cx.x[12]],
+                    ) as usize;
                 }
                 Exception::SupervisorEnvCall => todo!(),
                 Exception::MachineEnvCall => todo!(),

@@ -18,3 +18,7 @@ pub fn sys_write(fd: usize, buf: *const u8, len: usize) -> isize {
         }
     }
 }
+
+pub fn sys_read(fd: usize, buf: *const u8, len: usize) -> isize {
+    todo!()
+}

@@ -40,3 +40,12 @@ pub(crate) fn sys_get_time() -> isize {
 pub(crate) fn sys_sbrk(delta: isize) -> isize {
     syscall(SyscallID::Sbrk, [delta.cast_unsigned(), 0, 0])
 }
+pub(crate) fn sys_fork() -> isize {
+    syscall(SyscallID::Fork, [0, 0, 0])
+}
+pub(crate) fn sys_exec(path: &str) -> isize {
+    syscall(SyscallID::Exec, [path.as_ptr() as usize, 0, 0])
+}
+pub(crate) fn sys_waitpid(pid: isize, exit_code: *mut i32) -> isize {
+    syscall(SyscallID::WaitPid, [pid as usize, exit_code as usize, 0])
+}

@@ -44,3 +44,37 @@ pub fn get_time() -> isize {
 pub fn sbrk(delta: isize) -> isize {
     sys_sbrk(delta)
 }
+pub fn fork() -> isize {
+    sys_fork()
+}
+pub fn exec(path: &str) -> isize {
+    sys_exec(path)
+}
+pub fn wait(exit_code: &mut i32) -> isize {
+    loop {
+        match sys_waitpid(-1, exit_code as *mut _) {
+            -2 => {
+                r#yield();
+            }
+            // -1 or a real pid
+            exit_pid => return exit_pid,
+        }
+    }
+}
+pub fn waitpid(pid: usize, exit_code: &mut i32) -> isize {
+    loop {
+        match sys_waitpid(pid as isize, exit_code as *mut _) {
+            -2 => {
+                r#yield();
+            }
+            // -1 or a real pid
+            exit_pid => return exit_pid,
+        }
+    }
+}
+pub fn sleep(period_ms: usize) {
+    let start = get_time();
+    while get_time() < start + period_ms as isize {
+        r#yield();
+    }
+}
