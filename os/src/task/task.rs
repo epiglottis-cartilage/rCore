@@ -9,7 +9,6 @@ use alloc::sync::{Arc, Weak};
 use alloc::vec::Vec;
 use config::memory::TRAP_CONTEXT;
 use core::cell::RefMut;
-use log::debug;
 
 pub struct TaskControlBlock {
     // immutable

@@ -83,23 +83,15 @@ impl FrameAllocator for StackFrameAllocator {
     }
 }
 
-// type FrameAllocatorImpl = StackFrameAllocator;
-#[unsafe(link_section = ".data")]
-static FRAME_ALLOCATOR: UPSafeCell<StackFrameAllocator> =
-    unsafe { core::mem::transmute([1u8; core::mem::size_of::<UPSafeCell<StackFrameAllocator>>()]) };
-
+type FrameAllocatorImpl = StackFrameAllocator;
+lazy_static::lazy_static! {
+    /// frame allocator instance through lazy_static!
+    pub static ref FRAME_ALLOCATOR: UPSafeCell<FrameAllocatorImpl> =
+        unsafe {UPSafeCell::new(FrameAllocatorImpl::new()) };
+}
 #[deny(unused)]
 /// initiate the frame allocator using `ekernel` and `MEMORY_END`
 pub fn init() {
-    let frame_allocator: UPSafeCell<StackFrameAllocator> =
-        unsafe { UPSafeCell::new(StackFrameAllocator::new()) };
-    log::debug!(
-        "init FRAME_ALLOCATOR at {:#p}",
-        core::ptr::addr_of!(FRAME_ALLOCATOR)
-    );
-    unsafe {
-        core::ptr::write_volatile(core::ptr::addr_of!(FRAME_ALLOCATOR) as _, frame_allocator);
-    };
     use crate::label::ekernel;
     use config::memory::MEMORY_END;
     FRAME_ALLOCATOR.exclusive_access().init(

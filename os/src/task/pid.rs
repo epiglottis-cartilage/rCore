@@ -3,7 +3,7 @@ use crate::sync::UPSafeCell;
 use alloc::vec::Vec;
 // use lazy_static::lazy_static;
 
-struct PidAllocator {
+pub struct PidAllocator {
     current: usize,
     recycled: Vec<usize>,
 }
@@ -42,20 +42,9 @@ impl Drop for PidHandle {
     }
 }
 
-#[unsafe(link_section = ".data")]
-static PID_ALLOCATOR: UPSafeCell<PidAllocator> =
-    unsafe { core::mem::transmute([0x01u8; size_of::<UPSafeCell<PidAllocator>>()]) };
-
-#[deny(unused)]
-/// Initialize the PID allocator
-pub fn init() {
-    let pid_allocator = unsafe { UPSafeCell::new(PidAllocator::new()) };
-    log::debug!(
-        "init PID_ALLOCATOR at {:#p}",
-        core::ptr::addr_of!(PID_ALLOCATOR)
-    );
-    unsafe {
-        core::ptr::write_volatile(core::ptr::addr_of!(PID_ALLOCATOR) as _, pid_allocator);
+lazy_static::lazy_static! {
+    pub static ref PID_ALLOCATOR: UPSafeCell<PidAllocator> = unsafe {
+        UPSafeCell::new(PidAllocator::new())
     };
 }
 

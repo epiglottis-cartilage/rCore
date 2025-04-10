@@ -12,20 +12,10 @@ use bitflags::bitflags;
 use config::memory::{MEMORY_END, MMIO, PAGE_SIZE, TRAMPOLINE, TRAP_CONTEXT, USER_STACK_SIZE};
 use core::arch::asm;
 
-#[unsafe(link_section = ".data")]
-pub static KERNEL_SPACE: Arc<UPSafeCell<MemorySet>> =
-    unsafe { core::mem::transmute([1u8; core::mem::size_of::<Arc<UPSafeCell<MemorySet>>>()]) };
-
-#[deny(dead_code)]
-pub fn init() {
-    let kernel_space = Arc::new(unsafe { UPSafeCell::new(MemorySet::new_kernel()) });
-    log::trace!(
-        "init KERNEL_SPACE at {:#p}",
-        core::ptr::addr_of!(KERNEL_SPACE)
-    );
-    unsafe {
-        core::ptr::write_volatile(core::ptr::addr_of!(KERNEL_SPACE) as _, kernel_space);
-    };
+lazy_static::lazy_static! {
+    /// a memory set instance through lazy_static! managing kernel space
+    pub static ref KERNEL_SPACE: Arc<UPSafeCell<MemorySet>> =
+        Arc::new(unsafe {UPSafeCell::new(MemorySet::new_kernel()) });
 }
 
 /// memory set structure, controls virtual-memory space

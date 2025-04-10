@@ -17,4 +17,4 @@ resolver = "3"
 
 [profile.release]
 debug = true
-opt-level = 0
+opt-level = 3

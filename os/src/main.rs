@@ -38,7 +38,7 @@ pub fn rust_main() -> ! {
     info!("back to world!");
     trap::init();
     loader::list_apps();
-    task::init();
+    task::add_initproc();
     trap::enable_timer_interrupt();
     timer::set_next_trigger();
     task::run_tasks();

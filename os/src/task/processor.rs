@@ -36,18 +36,10 @@ impl Processor {
     }
 }
 
-#[unsafe(link_section = ".data")]
-static PROCESSOR: UPSafeCell<Processor> =
-    unsafe { core::mem::transmute([0x01u8; core::mem::size_of::<UPSafeCell<Processor>>()]) };
-
-#[deny(dead_code)]
-///Initialize the processor
-pub fn init() {
-    let processor = unsafe { UPSafeCell::new(Processor::new()) };
-    log::debug!("init PROCESSOR at {:#p}", core::ptr::addr_of!(PROCESSOR));
-    unsafe {
-        core::ptr::write_volatile(core::ptr::addr_of!(PROCESSOR) as _, processor);
-    }
+lazy_static::lazy_static! {
+    pub static ref PROCESSOR: UPSafeCell<Processor> = unsafe {
+        UPSafeCell::new(Processor::new())
+    };
 }
 
 ///The main part of process execution and scheduling
