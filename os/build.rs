@@ -4,7 +4,7 @@ use std::io::{Result, Write};
 fn main() {
     println!("cargo:rerun-if-changed=/user/");
     println!("cargo:rerun-if-changed={}", TARGET_PATH);
-    println!("cargo:rustc-env=LOG=TRACE");
+    println!("cargo:rustc-env=LOG=DEBUG");
     insert_app_data().unwrap();
 }
 

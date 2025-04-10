@@ -112,13 +112,12 @@ pub fn init() {
     pid::init();
     manager::init();
     processor::init();
-    println!("Init initializing...");
     let init_proc = Arc::new(TaskControlBlock::new(
         get_app_data_by_name(config::INIT_PROC_NAME).unwrap(),
     ));
+    log::debug!("init INITPROC at {:#p}", core::ptr::addr_of!(INITPROC));
     unsafe {
         core::ptr::write(core::ptr::addr_of!(INITPROC) as _, init_proc);
     }
-    println!("Init initialized");
     add_task(INITPROC.clone());
 }

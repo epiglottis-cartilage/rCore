@@ -26,17 +26,20 @@ impl TaskManager {
     }
 }
 
+#[unsafe(link_section = ".data")]
 pub static TASK_MANAGER: UPSafeCell<TaskManager> =
     unsafe { core::mem::transmute([0x01u8; core::mem::size_of::<UPSafeCell<TaskManager>>()]) };
 #[deny(dead_code)]
 ///Initialize the task manager
 pub fn init() {
-    println!("Task manager initializing...");
     let task_manager = unsafe { UPSafeCell::new(TaskManager::new()) };
+    log::debug!(
+        "init TASK_MANAGER at {:#p}",
+        core::ptr::addr_of!(TASK_MANAGER)
+    );
     unsafe {
         core::ptr::write_volatile(core::ptr::addr_of!(TASK_MANAGER) as _, task_manager);
     }
-    println!("Task manager initialized");
 }
 ///Interface offered to add task
 pub fn add_task(task: Arc<TaskControlBlock>) {

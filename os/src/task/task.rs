@@ -2,7 +2,7 @@
 
 use super::TaskContext;
 use super::{KernelStack, PidHandle, pid_alloc};
-use crate::memory::{PhysPageNum, KERNEL_SPACE, MemorySet, VirtAddr};
+use crate::memory::{KERNEL_SPACE, MemorySet, PhysPageNum, VirtAddr};
 use crate::sync::UPSafeCell;
 use crate::trap::{TrapContext, trap_handler};
 use alloc::sync::{Arc, Weak};
@@ -43,7 +43,7 @@ impl TaskControlBlockInner {
     pub fn get_trap_cx(&self) -> &'static mut TrapContext {
         self.trap_cx_ppn.as_mut()
     }
-    pub fn get_user_token(&self) -> PhysPageNum {
+    pub fn get_user_token(&self) -> usize {
         self.memory_set.token()
     }
     fn get_status(&self) -> TaskStatus {
@@ -74,18 +74,9 @@ impl TaskControlBlock {
             kernel_stack,
             inner: unsafe {
                 UPSafeCell::new(TaskControlBlockInner {
-                    trap_cx_ppn: {
-                        debug!("trap_cx_ppn: {:?}", trap_cx_ppn);
-                        trap_cx_ppn
-                    },
-                    base_size: {
-                        debug!("base_size: {:?}", user_sp);
-                        user_sp
-                    },
-                    task_cx: {
-                        debug!("task_cx: {:?}", kernel_stack_top);
-                        TaskContext::goto_trap_return(kernel_stack_top)
-                    },
+                    trap_cx_ppn,
+                    base_size: user_sp,
+                    task_cx: TaskContext::goto_trap_return(kernel_stack_top),
                     task_status: TaskStatus::Ready,
                     memory_set,
                     parent: None,
@@ -96,10 +87,11 @@ impl TaskControlBlock {
         };
         // prepare TrapContext in user space
         let trap_cx = task_control_block.inner_exclusive_access().get_trap_cx();
+        let kernel_ppn: PhysPageNum = KERNEL_SPACE.exclusive_access().token().into();
         *trap_cx = TrapContext::app_init_context(
             entry_point,
             user_sp,
-            KERNEL_SPACE.exclusive_access().token().into(),
+            kernel_ppn.into(),
             kernel_stack_top,
             trap_handler as usize,
         );
@@ -123,10 +115,11 @@ impl TaskControlBlock {
         inner.base_size = user_sp;
         // initialize trap_cx
         let trap_cx = inner.get_trap_cx();
+        let kernel_ppn: PhysPageNum = KERNEL_SPACE.exclusive_access().token().into();
         *trap_cx = TrapContext::app_init_context(
             entry_point,
             user_sp,
-            KERNEL_SPACE.exclusive_access().token().into(),
+            kernel_ppn.into(),
             self.kernel_stack.get_top(),
             trap_handler as usize,
         );

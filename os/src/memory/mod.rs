@@ -22,11 +22,8 @@ pub use page_table::{PageTableEntry, translate_sized, translate_str, translated_
 #[deny(dead_code)]
 /// initiate heap allocator, frame allocator and kernel space
 pub fn init() {
-    println!("heap allocator init");
     heap_allocator::init();
-    println!("frame allocator init");
     frame_allocator::init();
-    println!("kernel space init");
     memory_set::init();
     KERNEL_SPACE.exclusive_access().activate();
 }

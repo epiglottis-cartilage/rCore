@@ -128,13 +128,14 @@ impl PageTable {
         self.find(vpn).map(|pte| *pte)
     }
     pub fn translate_va(&self, va: VirtAddr) -> Option<PhysAddr> {
-        self.find(va.into()).map(|page_table_entry| {
-            let aligned_pa: usize = page_table_entry.ppn().into();
-            (aligned_pa | va.page_offset()).into()
+        self.find(va.floor()).map(|page_table_entry| {
+            let aligned_pa: PhysAddr = page_table_entry.ppn().into();
+            (aligned_pa.0 | va.page_offset()).into()
         })
     }
-    pub fn token(&self) -> PhysPageNum {
-        self.root_ppn
+    pub fn token(&self) -> usize {
+        let stap: riscv::register::satp::Satp = self.root_ppn.into();
+        stap.bits()
     }
 }
 
@@ -165,20 +166,22 @@ pub fn translate_sized(
 }
 
 /// translate a pointer to a mutable u8 Vec end with `\0` through page table to a `String`
-pub fn translate_str(token: PhysPageNum, ptr: *const u8) -> Option<String> {
-    let page_table = PageTable::from_ppn(token);
-
+pub fn translate_str(token: usize, ptr: *const u8) -> Option<String> {
+    let page_table = PageTable::from_ppn(token.into());
     let res = (ptr as usize..)
         .map(|ptr| ptr.into())
-        .map(|va| *page_table.translate_va(va).unwrap().as_mut())
+        .map(|va| {
+            let addr = *page_table.translate_va(va).unwrap().as_mut();
+            addr
+        })
         .take_while(|x: &u8| *x != b'\0')
         .collect::<Vec<_>>();
     String::from_utf8(res).ok()
 }
 
 ///translate a generic through page table and return a mutable reference
-pub fn translated_refmut<T>(token: PhysPageNum, ptr: *mut T) -> &'static mut T {
-    PageTable::from_ppn(token)
+pub fn translated_refmut<T>(token: usize, ptr: *mut T) -> &'static mut T {
+    PageTable::from_ppn(token.into())
         .translate_va((ptr as usize).into())
         .unwrap()
         .as_mut()

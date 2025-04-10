@@ -14,8 +14,8 @@
 
 mod context;
 
+use crate::syscall::syscall;
 use crate::task;
-use crate::{memory::PhysAddr, syscall::syscall};
 use config::memory::{TRAMPOLINE, TRAP_CONTEXT};
 use core::arch::{asm, global_asm};
 use riscv::{
@@ -146,7 +146,7 @@ unsafe extern "C" {
 pub fn trap_return() -> ! {
     set_user_trap_entry();
     let trap_cx_ptr = TRAP_CONTEXT;
-    let user_satp: PhysAddr = task::current_user_token().into();
+    let user_satp = task::current_user_token();
     let restore_va = __restore as usize - __alltraps as usize + TRAMPOLINE;
     unsafe {
         asm!(
@@ -154,7 +154,7 @@ pub fn trap_return() -> ! {
             "jr {restore_va}",             // jump to new addr of __restore asm function
             restore_va = in(reg) restore_va,
             in("a0") trap_cx_ptr,      // a0 = virt addr of Trap Context
-            in("a1") usize::from(user_satp),        // a1 = phy addr of usr page table
+            in("a1") user_satp,        // a1 = phy addr of usr page table
             options(noreturn)
         );
     }

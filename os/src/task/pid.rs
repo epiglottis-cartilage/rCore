@@ -42,22 +42,21 @@ impl Drop for PidHandle {
     }
 }
 
+#[unsafe(link_section = ".data")]
 static PID_ALLOCATOR: UPSafeCell<PidAllocator> =
     unsafe { core::mem::transmute([0x01u8; size_of::<UPSafeCell<PidAllocator>>()]) };
 
 #[deny(unused)]
 /// Initialize the PID allocator
 pub fn init() {
-    println!("PID allocator initializing...");
     let pid_allocator = unsafe { UPSafeCell::new(PidAllocator::new()) };
+    log::debug!(
+        "init PID_ALLOCATOR at {:#p}",
+        core::ptr::addr_of!(PID_ALLOCATOR)
+    );
     unsafe {
-        println!(
-            "PID allocator initializedm at {:p}",
-            core::ptr::addr_of!(PID_ALLOCATOR)
-        );
         core::ptr::write_volatile(core::ptr::addr_of!(PID_ALLOCATOR) as _, pid_allocator);
     };
-    println!("PID allocator initialized");
 }
 
 pub fn pid_alloc() -> PidHandle {

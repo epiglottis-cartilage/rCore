@@ -9,7 +9,7 @@ const FD_STDOUT: usize = 1;
 pub fn sys_write(fd: usize, buf: *const u8, len: usize) -> isize {
     match fd {
         FD_STDOUT => {
-            let buffers = memory::translate_sized(task::current_user_token(), buf, len);
+            let buffers = memory::translate_sized(task::current_user_token().into(), buf, len);
             for buffer in buffers {
                 print!("{}", core::str::from_utf8(buffer).unwrap());
             }
@@ -36,7 +36,7 @@ pub fn sys_read(fd: usize, buf: *const u8, len: usize) -> isize {
                 }
             }
             let ch = c as u8;
-            let mut buffers = memory::translate_sized(task::current_user_token(), buf, len);
+            let mut buffers = memory::translate_sized(task::current_user_token().into(), buf, len);
             unsafe {
                 buffers[0].as_mut_ptr().write_volatile(ch);
             }

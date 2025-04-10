@@ -30,8 +30,10 @@ use log::*;
 pub fn rust_main() -> ! {
     clear_bss();
     logging::init();
+    trap::init();
     info!("Hello, world!");
     memory::init();
+    info!("back to world!");
     memory::remap_test();
     info!("back to world!");
     trap::init();

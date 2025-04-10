@@ -2,7 +2,6 @@
 use super::__switch;
 use super::{TaskContext, TaskControlBlock};
 use super::{TaskStatus, fetch_task};
-use crate::memory::PhysPageNum;
 use crate::sync::UPSafeCell;
 use crate::trap::TrapContext;
 use alloc::sync::Arc;
@@ -36,18 +35,19 @@ impl Processor {
         self.current.as_ref().map(Arc::clone)
     }
 }
+
+#[unsafe(link_section = ".data")]
 static PROCESSOR: UPSafeCell<Processor> =
     unsafe { core::mem::transmute([0x01u8; core::mem::size_of::<UPSafeCell<Processor>>()]) };
 
 #[deny(dead_code)]
 ///Initialize the processor
 pub fn init() {
-    println!("PROCESSOR initializing...");
     let processor = unsafe { UPSafeCell::new(Processor::new()) };
+    log::debug!("init PROCESSOR at {:#p}", core::ptr::addr_of!(PROCESSOR));
     unsafe {
         core::ptr::write_volatile(core::ptr::addr_of!(PROCESSOR) as _, processor);
     }
-    println!("PROCESSOR initialized!");
 }
 
 ///The main part of process execution and scheduling
@@ -81,8 +81,8 @@ pub fn current_task() -> Option<Arc<TaskControlBlock>> {
     PROCESSOR.exclusive_access().current()
 }
 ///Get token of the address space of current task
-pub fn current_user_token() -> PhysPageNum {
-    let task: Arc<TaskControlBlock> = current_task().unwrap();
+pub fn current_user_token() -> usize {
+    let task = current_task().unwrap();
     let token = task.inner_exclusive_access().get_user_token();
     token
 }

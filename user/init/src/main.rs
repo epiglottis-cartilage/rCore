@@ -5,9 +5,9 @@
 extern crate libr;
 
 use libr::{exec, fork, wait, r#yield};
-
 #[unsafe(no_mangle)]
 fn main() -> i32 {
+    println!("[initproc] Init process started");
     if fork() == 0 {
         exec("shell\0");
     } else {

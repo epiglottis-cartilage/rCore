@@ -1,8 +1,8 @@
 //! Implementation of [`MapArea`] and [`MemorySet`].
 
 use super::{FrameTracker, frame_alloc};
-use super::{PhysPageNum, PhysAddr, VirtAddr, VirtPageNum};
 use super::{PageTable, PageTableEntry, PageTableEntryFlags};
+use super::{PhysAddr, PhysPageNum, VirtAddr, VirtPageNum};
 use crate::label::*;
 use crate::sync::UPSafeCell;
 use alloc::collections::BTreeMap;
@@ -12,12 +12,17 @@ use bitflags::bitflags;
 use config::memory::{MEMORY_END, MMIO, PAGE_SIZE, TRAMPOLINE, TRAP_CONTEXT, USER_STACK_SIZE};
 use core::arch::asm;
 
+#[unsafe(link_section = ".data")]
 pub static KERNEL_SPACE: Arc<UPSafeCell<MemorySet>> =
     unsafe { core::mem::transmute([1u8; core::mem::size_of::<Arc<UPSafeCell<MemorySet>>>()]) };
 
 #[deny(dead_code)]
 pub fn init() {
     let kernel_space = Arc::new(unsafe { UPSafeCell::new(MemorySet::new_kernel()) });
+    log::trace!(
+        "init KERNEL_SPACE at {:#p}",
+        core::ptr::addr_of!(KERNEL_SPACE)
+    );
     unsafe {
         core::ptr::write_volatile(core::ptr::addr_of!(KERNEL_SPACE) as _, kernel_space);
     };
@@ -38,7 +43,7 @@ impl MemorySet {
         }
     }
     ///Get pagetable `root_ppn`
-    pub fn token(&self) -> PhysPageNum {
+    pub fn token(&self) -> usize {
         self.page_table.token()
     }
     /// Assume that no conflicts.
@@ -212,16 +217,6 @@ impl MemorySet {
             ),
             None,
         );
-        // used in sbrk
-        memory_set.push(
-            MapArea::new(
-                user_stack_top.into(),
-                user_stack_top.into(),
-                MapType::Framed,
-                MapPermission::R | MapPermission::W | MapPermission::U,
-            ),
-            None,
-        );
         // map TrapContext
         memory_set.push(
             MapArea::new(
@@ -259,7 +254,9 @@ impl MemorySet {
     ///Refresh TLB with `sfence.vma`
     pub fn activate(&self) {
         unsafe {
-            riscv::register::satp::write(self.page_table.token().into());
+            riscv::register::satp::write(riscv::register::satp::Satp::from_bits(
+                self.page_table.token(),
+            ));
             asm!("sfence.vma");
         }
     }
