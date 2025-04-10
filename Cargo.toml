@@ -10,6 +10,8 @@ members = [
     "user/load_fault",
     "user/store_fault",
     "user/sbrk_test",
+    "user/init",
+    "user/shell",
 ]
 resolver = "3"
 
