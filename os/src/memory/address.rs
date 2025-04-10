@@ -57,6 +57,14 @@ impl From<usize> for PhysPageNum {
         Self(v & ((1 << PPN_WIDTH) - 1))
     }
 }
+impl Into<riscv::register::satp::Satp> for PhysPageNum {
+    fn into(self) -> riscv::register::satp::Satp {
+        let mut res = riscv::register::satp::Satp::from_bits(0);
+        res.set_ppn(self.0);
+        res.set_mode(VA_MODE);
+        res
+    }
+}
 impl From<usize> for VirtAddr {
     fn from(v: usize) -> Self {
         Self(v & ((1 << VA_WIDTH) - 1))
@@ -158,6 +166,20 @@ impl VirtPageNum {
         [(vpn >> 18) & mask, (vpn >> 9) & mask, vpn & mask]
     }
 }
+impl PhysAddr {
+    ///Get mutable reference to `PhysAddr` value
+    pub fn as_mut<T>(&self) -> &'static mut T {
+        assert!(
+            self.page_offset() + core::mem::size_of::<T>() <= PAGE_SIZE,
+            "PhysAddr::as_mut<T> out of page"
+        );
+        unsafe { (self.0 as *mut T).as_mut().unwrap() }
+    }
+    pub fn to_end(&self) -> &'static mut [u8] {
+        let len = PAGE_SIZE - self.page_offset();
+        unsafe { core::slice::from_raw_parts_mut(self.0 as *mut u8, len) }
+    }
+}
 
 impl PhysPageNum {
     #[inline]
@@ -226,5 +248,37 @@ impl core::iter::Step for PhysPageNum {
     fn backward(mut start: Self, count: usize) -> Self {
         start.0 -= count;
         start
+    }
+}
+
+impl core::ops::Add<usize> for PhysPageNum {
+    type Output = Self;
+
+    fn add(self, rhs: usize) -> Self::Output {
+        Self(self.0 + rhs)
+    }
+}
+
+impl core::ops::Sub<usize> for PhysPageNum {
+    type Output = Self;
+
+    fn sub(self, rhs: usize) -> Self::Output {
+        Self(self.0 - rhs)
+    }
+}
+
+impl core::ops::Add<usize> for VirtPageNum {
+    type Output = Self;
+
+    fn add(self, rhs: usize) -> Self::Output {
+        Self(self.0 + rhs)
+    }
+}
+
+impl core::ops::Sub<usize> for VirtPageNum {
+    type Output = Self;
+
+    fn sub(self, rhs: usize) -> Self::Output {
+        Self(self.0 - rhs)
     }
 }

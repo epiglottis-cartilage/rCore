@@ -1,11 +1,10 @@
 //! Implementation of [`PageTableEntry`] and [`PageTable`].
 
-use super::{FrameTracker, PhysPageNum, VirtAddr, VirtPageNum, frame_alloc};
+use super::{FrameTracker, PhysAddr, PhysPageNum, VirtAddr, VirtPageNum, frame_alloc};
+use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use bitflags::bitflags;
-use core::iter::Step;
-use riscv::register::satp;
 
 bitflags! {
     /// page table entry flags
@@ -73,7 +72,7 @@ impl PageTable {
         }
     }
     /// Temporarily used to get arguments from user space.
-    pub fn from_satp(ppn: PhysPageNum) -> Self {
+    pub fn from_ppn(ppn: PhysPageNum) -> Self {
         Self {
             root_ppn: ppn,
             frames: Vec::new(),
@@ -125,40 +124,62 @@ impl PageTable {
         assert!(pte.valid(), "vpn {:?} is invalid before unmapping", vpn);
         *pte = PageTableEntry::empty();
     }
-    pub fn translate(&self, vpn: VirtPageNum) -> Option<PageTableEntry> {
+    pub fn translate_vp(&self, vpn: VirtPageNum) -> Option<PageTableEntry> {
         self.find(vpn).map(|pte| *pte)
     }
-    pub fn token(&self) -> satp::Satp {
-        let mut token = satp::Satp::from_bits(0);
-        token.set_ppn(self.root_ppn.0);
-        token.set_mode(config::memory::VA_MODE);
-        token
+    pub fn translate_va(&self, va: VirtAddr) -> Option<PhysAddr> {
+        self.find(va.into()).map(|page_table_entry| {
+            let aligned_pa: usize = page_table_entry.ppn().into();
+            (aligned_pa | va.page_offset()).into()
+        })
+    }
+    pub fn token(&self) -> PhysPageNum {
+        self.root_ppn
     }
 }
 
 /// translate a pointer to a mutable u8 Vec through page table
-pub fn translated_byte_buffer(
-    token: satp::Satp,
-    ptr: *const u8,
-    len: usize,
+pub fn translate_sized(
+    token: PhysPageNum,
+    mut ptr: *const u8,
+    mut len: usize,
 ) -> Vec<&'static mut [u8]> {
-    let page_table = PageTable::from_satp(token.ppn().into());
-    let mut start = ptr as usize;
-    let end = start + len;
-    let mut v = Vec::new();
-    while start < end {
-        let start_va = VirtAddr::from(start);
-        let mut vpn = start_va.floor();
-        let ppn = page_table.translate(vpn).unwrap().ppn();
-        vpn = Step::forward(vpn, 1);
-        let mut end_va: VirtAddr = vpn.into();
-        end_va = end_va.min(VirtAddr::from(end));
-        if end_va.page_offset() == 0 {
-            v.push(&mut ppn.as_bytes()[start_va.page_offset()..]);
+    let page_table = PageTable::from_ppn(token);
+    let mut resutl = Vec::new();
+    loop {
+        let part = page_table
+            .translate_va((ptr as usize).into())
+            .unwrap()
+            .to_end();
+        let part_len = part.len();
+        if len <= part_len {
+            resutl.push(&mut part[..len]);
+            break;
         } else {
-            v.push(&mut ppn.as_bytes()[start_va.page_offset()..end_va.page_offset()]);
+            resutl.push(part);
+            len -= part_len;
+            ptr = (ptr as usize + part_len) as _;
         }
-        start = end_va.into();
     }
-    v
+    resutl
+}
+
+/// translate a pointer to a mutable u8 Vec end with `\0` through page table to a `String`
+pub fn translate_str(token: PhysPageNum, ptr: *const u8) -> Option<String> {
+    let page_table = PageTable::from_ppn(token);
+
+    let res = (ptr as usize..)
+        .map(|ptr| ptr.into())
+        .map(|va| *page_table.translate_va(va).unwrap().as_mut())
+        .take_while(|x: &u8| *x != b'\0')
+        .collect::<Vec<_>>();
+    String::from_utf8(res).ok()
+}
+
+///translate a generic through page table and return a mutable reference
+pub fn translated_refmut<T>(token: PhysPageNum, ptr: *mut T) -> &'static mut T {
+    PageTable::from_ppn(token)
+        .translate_va((ptr as usize).into())
+        .unwrap()
+        .as_mut()
 }

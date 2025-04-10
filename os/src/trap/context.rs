@@ -1,5 +1,6 @@
 //! Implementation of [`TrapContext`]
 
+use crate::memory::PhysPageNum;
 use riscv::register::sstatus::{self, SPP, Sstatus};
 /// Trap Context
 
@@ -13,7 +14,7 @@ pub struct TrapContext {
     /// CSR sepc
     pub sepc: usize,
     /// Addr of Page Table
-    pub kernel_satp: usize,
+    pub kernel_stap: usize,
     /// kernel stack
     pub kernel_sp: usize,
     /// Addr of trap_handler function
@@ -29,7 +30,7 @@ impl TrapContext {
     pub fn app_init_context(
         entry: usize,
         sp: usize,
-        kernel_satp: usize,
+        kernel_stap: riscv::register::satp::Satp,
         kernel_sp: usize,
         trap_handler: usize,
     ) -> Self {
@@ -38,10 +39,10 @@ impl TrapContext {
         let mut cx = Self {
             x: [0; 32],
             sstatus,
-            sepc: entry,  // entry point of app
-            kernel_satp,  // addr of page table
-            kernel_sp,    // kernel stack
-            trap_handler, // addr of trap_handler function
+            sepc: entry,                     // entry point of app
+            kernel_stap: kernel_stap.bits(), // addr of page table
+            kernel_sp,                       // kernel stack
+            trap_handler,                    // addr of trap_handler function
         };
         cx.set_sp(sp); // app's user stack pointer
         cx // return initial Trap Context of app

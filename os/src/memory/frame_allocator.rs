@@ -1,11 +1,10 @@
 //! Implementation of [`FrameAllocator`] which
 //! controls all the frames in the operating system.
 
-use super::{PhysAddr, PhysPageNum};
+use super::{PhysPageNum, PhysAddr};
 use crate::sync::UPSafeCell;
 use alloc::vec::Vec;
 use core::fmt::{self, Debug, Formatter};
-use lazy_static::*;
 
 /// manage a frame which has the same lifecycle as the tracker
 pub struct FrameTracker {
@@ -85,22 +84,20 @@ impl FrameAllocator for StackFrameAllocator {
 }
 
 // type FrameAllocatorImpl = StackFrameAllocator;
+static FRAME_ALLOCATOR: UPSafeCell<StackFrameAllocator> =
+    unsafe { core::mem::transmute([1u8; core::mem::size_of::<UPSafeCell<StackFrameAllocator>>()]) };
 
-lazy_static! {
-    /// frame allocator instance through lazy_static!
-    pub static ref FRAME_ALLOCATOR: UPSafeCell<StackFrameAllocator> =
-        unsafe { UPSafeCell::new(StackFrameAllocator::new()) };
-}
-
+#[deny(unused)]
 /// initiate the frame allocator using `ekernel` and `MEMORY_END`
-pub fn init_frame_allocator() {
+pub fn init() {
+    let frame_allocator: UPSafeCell<StackFrameAllocator> =
+        unsafe { UPSafeCell::new(StackFrameAllocator::new()) };
+    unsafe {
+        core::ptr::write_volatile(core::ptr::addr_of!(FRAME_ALLOCATOR) as _, frame_allocator);
+    };
+
     use crate::label::ekernel;
     use config::memory::MEMORY_END;
-    log::trace!(
-        "frame_allocator: {:#x} - {:#x}",
-        ekernel as usize,
-        MEMORY_END
-    );
     FRAME_ALLOCATOR.exclusive_access().init(
         PhysAddr::from(ekernel as usize).ceil(),
         PhysAddr::from(MEMORY_END).floor(),

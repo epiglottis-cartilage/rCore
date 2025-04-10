@@ -32,12 +32,14 @@ pub fn rust_main() -> ! {
     logging::init();
     info!("Hello, world!");
     memory::init();
-    info!("back to world!");
     memory::remap_test();
+    info!("back to world!");
     trap::init();
+    loader::list_apps();
+    task::init();
     trap::enable_timer_interrupt();
     timer::set_next_trigger();
-    task::run_first_task();
+    task::run_tasks();
     sbi::shutdown(false);
 }
 
