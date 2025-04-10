@@ -5,7 +5,6 @@ use super::{PhysAddr, PhysPageNum};
 use crate::sync::UPSafeCell;
 use alloc::vec::Vec;
 use core::fmt::{self, Debug, Formatter};
-use lazy_static::*;
 
 /// manage a frame which has the same lifecycle as the tracker
 pub struct FrameTracker {
@@ -84,23 +83,17 @@ impl FrameAllocator for StackFrameAllocator {
     }
 }
 
-// type FrameAllocatorImpl = StackFrameAllocator;
-
-lazy_static! {
+type FrameAllocatorImpl = StackFrameAllocator;
+lazy_static::lazy_static! {
     /// frame allocator instance through lazy_static!
-    pub static ref FRAME_ALLOCATOR: UPSafeCell<StackFrameAllocator> =
-        unsafe { UPSafeCell::new(StackFrameAllocator::new()) };
+    pub static ref FRAME_ALLOCATOR: UPSafeCell<FrameAllocatorImpl> =
+        unsafe {UPSafeCell::new(FrameAllocatorImpl::new()) };
 }
-
+#[deny(unused)]
 /// initiate the frame allocator using `ekernel` and `MEMORY_END`
-pub fn init_frame_allocator() {
+pub fn init() {
     use crate::label::ekernel;
     use config::memory::MEMORY_END;
-    log::trace!(
-        "frame_allocator: {:#x} - {:#x}",
-        ekernel as usize,
-        MEMORY_END
-    );
     FRAME_ALLOCATOR.exclusive_access().init(
         PhysAddr::from(ekernel as usize).ceil(),
         PhysAddr::from(MEMORY_END).floor(),

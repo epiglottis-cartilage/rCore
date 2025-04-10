@@ -17,11 +17,12 @@ pub use frame_allocator::{FrameTracker, frame_alloc};
 pub use memory_set::remap_test;
 pub use memory_set::{KERNEL_SPACE, MapPermission, MemorySet};
 use page_table::{PageTable, PageTableEntryFlags};
-pub use page_table::{PageTableEntry, translated_byte_buffer};
+pub use page_table::{PageTableEntry, translate_sized, translate_str, translated_refmut};
 
+#[deny(dead_code)]
 /// initiate heap allocator, frame allocator and kernel space
 pub fn init() {
-    heap_allocator::init_heap();
-    frame_allocator::init_frame_allocator();
+    heap_allocator::init();
+    frame_allocator::init();
     KERNEL_SPACE.exclusive_access().activate();
 }

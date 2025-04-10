@@ -34,6 +34,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "361a90feb7004eca4019fb28352a9465666b24f840f5c3cddf0ff13920590b89"
 
 [[package]]
+name = "include_bytes_aligned"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4ee796ad498c8d9a1d68e477df8f754ed784ef875de1414ebdaf169f70a6a784"
+
+[[package]]
+name = "init"
+version = "0.1.0"
+dependencies = [
+ "libr",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -47,6 +60,7 @@ name = "libr"
 version = "0.1.0"
 dependencies = [
  "config",
+ "linked_list_allocator",
 ]
 
 [[package]]
@@ -87,6 +101,7 @@ version = "0.1.0"
 dependencies = [
  "bitflags",
  "config",
+ "include_bytes_aligned",
  "lazy_static",
  "linked_list_allocator",
  "log",
@@ -197,6 +212,13 @@ name = "scopeguard"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
+
+[[package]]
+name = "shell"
+version = "0.1.0"
+dependencies = [
+ "libr",
+]
 
 [[package]]
 name = "sleep"

@@ -23,7 +23,7 @@ impl TaskContext {
     }
 
     /// set task context {__restore ASM funciton, kernel stack, s_0..12 }
-    pub fn goto_restore(kstack_ptr: usize) -> Self {
+    pub fn goto_trap_return(kstack_ptr: usize) -> Self {
         Self {
             ra: crate::trap::trap_return as usize,
             sp: kstack_ptr,

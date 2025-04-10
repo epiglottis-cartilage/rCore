@@ -2,7 +2,7 @@
     .globl _start
 _start:
     la sp, boot_stack_top
-    call rust_main
+    j rust_main
 
     .section .data.stack
     .globl boot_stack_lower_bound

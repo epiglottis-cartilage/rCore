@@ -18,8 +18,9 @@ use core::mem::MaybeUninit;
 static mut HEAP_SPACE: [MaybeUninit<u8>; KERNEL_HEAP_SIZE] =
     unsafe { MaybeUninit::uninit().assume_init() };
 
+#[deny(dead_code)]
 /// initiate heap allocator
-pub fn init_heap() {
+pub fn init() {
     #[allow(static_mut_refs)]
     HEAP_ALLOCATOR
         .lock()
