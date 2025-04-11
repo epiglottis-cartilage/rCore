@@ -26,8 +26,7 @@ impl TaskManager {
     }
 }
 
-#[unsafe(link_section = ".data")]
-pub static TASK_MANAGER: UPSafeCell<TaskManager> =
+static mut TASK_MANAGER: UPSafeCell<TaskManager> =
     unsafe { core::mem::transmute([0x01u8; core::mem::size_of::<UPSafeCell<TaskManager>>()]) };
 #[deny(dead_code)]
 ///Initialize the task manager
@@ -43,9 +42,9 @@ pub fn init() {
 }
 ///Interface offered to add task
 pub fn add_task(task: Arc<TaskControlBlock>) {
-    TASK_MANAGER.exclusive_access().add(task);
+    unsafe { TASK_MANAGER.exclusive_access()} .add(task);
 }
 ///Interface offered to pop the first task
 pub fn fetch_task() -> Option<Arc<TaskControlBlock>> {
-    TASK_MANAGER.exclusive_access().fetch()
+    unsafe { TASK_MANAGER.exclusive_access() }.fetch()
 }

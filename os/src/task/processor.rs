@@ -36,8 +36,7 @@ impl Processor {
     }
 }
 
-#[unsafe(link_section = ".data")]
-static PROCESSOR: UPSafeCell<Processor> =
+static mut PROCESSOR: UPSafeCell<Processor> =
     unsafe { core::mem::transmute([0x01u8; core::mem::size_of::<UPSafeCell<Processor>>()]) };
 
 #[deny(dead_code)]
@@ -54,7 +53,7 @@ pub fn init() {
 ///Loop `fetch_task` to get the process that needs to run, and switch the process through `__switch`
 pub fn run_tasks() {
     loop {
-        let mut processor = PROCESSOR.exclusive_access();
+        let mut processor = unsafe { PROCESSOR.exclusive_access() };
         if let Some(task) = fetch_task() {
             let idle_task_cx_ptr = processor.get_idle_task_cx_ptr();
             // access coming task TCB exclusively
@@ -74,11 +73,15 @@ pub fn run_tasks() {
 }
 ///Take the current task,leaving a None in its place
 pub fn take_current_task() -> Option<Arc<TaskControlBlock>> {
-    PROCESSOR.exclusive_access().take_current()
+    unsafe {
+        PROCESSOR.exclusive_access().take_current()
+    }
 }
 ///Get running task
 pub fn current_task() -> Option<Arc<TaskControlBlock>> {
-    PROCESSOR.exclusive_access().current()
+    unsafe {
+        PROCESSOR.exclusive_access().current()
+    }
 }
 ///Get token of the address space of current task
 pub fn current_user_token() -> usize {
@@ -95,7 +98,7 @@ pub fn current_trap_cx() -> &'static mut TrapContext {
 }
 ///Return to idle control flow for new scheduling
 pub fn schedule(switched_task_cx_ptr: *mut TaskContext) {
-    let mut processor = PROCESSOR.exclusive_access();
+    let mut processor = unsafe { PROCESSOR.exclusive_access() };
     let idle_task_cx_ptr = processor.get_idle_task_cx_ptr();
     drop(processor);
     unsafe {

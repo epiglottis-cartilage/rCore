@@ -7,9 +7,10 @@ use core::panic::PanicInfo;
 fn panic(info: &PanicInfo) -> ! {
     if let Some(location) = info.location() {
         println!(
-            "Panicked at {}:{} {}",
+            "Panicked at {}:{}:{} {}",
             location.file(),
             location.line(),
+            location.column(),
             info.message()
         );
     } else {

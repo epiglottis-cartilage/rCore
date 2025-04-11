@@ -81,9 +81,9 @@ pub fn exit_current_and_run_next(exit_code: i32) {
 
     // ++++++ access initproc TCB exclusively
     {
-        let mut initproc_inner = INITPROC.inner_exclusive_access();
+        let mut initproc_inner = unsafe { INITPROC.inner_exclusive_access() };
         for child in inner.children.iter() {
-            child.inner_exclusive_access().parent = Some(Arc::downgrade(&INITPROC));
+            child.inner_exclusive_access().parent = Some(Arc::downgrade(unsafe { &INITPROC }));
             initproc_inner.children.push(child.clone());
         }
     }
@@ -103,7 +103,7 @@ pub fn exit_current_and_run_next(exit_code: i32) {
 
 ///Globle process that init user shell
 #[unsafe(link_section = ".data")]
-pub static INITPROC: Arc<TaskControlBlock> =
+static mut INITPROC: Arc<TaskControlBlock> =
     unsafe { core::mem::transmute([0x01u8; core::mem::size_of::<Arc<TaskControlBlock>>()]) };
 ///Add init process to the manager
 
@@ -119,5 +119,5 @@ pub fn init() {
     unsafe {
         core::ptr::write(core::ptr::addr_of!(INITPROC) as _, init_proc);
     }
-    add_task(INITPROC.clone());
+    add_task(unsafe { INITPROC.clone() });
 }
