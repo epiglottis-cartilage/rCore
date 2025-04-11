@@ -4,9 +4,8 @@ use super::{FrameTracker, PhysAddr, PhysPageNum, VirtAddr, VirtPageNum, frame_al
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
-use bitflags::bitflags;
 
-bitflags! {
+bitflags::bitflags! {
     /// page table entry flags
     pub struct PageTableEntryFlags: u8 {
         const V = 1 << 0;
