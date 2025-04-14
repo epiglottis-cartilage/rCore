@@ -6,6 +6,7 @@ pub enum SyscallID {
     Exit = 93,
     Yield = 124,
     GetTime = 169,
+    GetPid = 172,
     Sbrk = 214,
     Fork = 220,
     Exec = 221,

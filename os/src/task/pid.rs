@@ -41,7 +41,6 @@ impl Drop for PidHandle {
         unsafe { PID_ALLOCATOR.exclusive_access() }.dealloc(self.0);
     }
 }
-
 static mut PID_ALLOCATOR: UPSafeCell<PidAllocator> =
     unsafe { core::mem::transmute([0x01u8; size_of::<UPSafeCell<PidAllocator>>()]) };
 

@@ -26,8 +26,8 @@ global_asm!(include_str!("entry.asm"));
 
 use log::*;
 
-#[unsafe(no_mangle)]
-pub fn rust_main() -> ! {
+#[unsafe(export_name = "rust_main")]
+pub fn main() -> ! {
     clear_bss();
     logging::init();
     trap::init();
