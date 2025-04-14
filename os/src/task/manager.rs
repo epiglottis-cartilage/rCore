@@ -26,17 +26,25 @@ impl TaskManager {
     }
 }
 
-lazy_static::lazy_static! {
-    pub static ref TASK_MANAGER: UPSafeCell<TaskManager> = unsafe {
-        UPSafeCell::new(TaskManager::new())
-    };
+static mut TASK_MANAGER: UPSafeCell<TaskManager> =
+    unsafe { core::mem::transmute([0x01u8; core::mem::size_of::<UPSafeCell<TaskManager>>()]) };
+#[deny(dead_code)]
+///Initialize the task manager
+pub fn init() {
+    let task_manager = unsafe { UPSafeCell::new(TaskManager::new()) };
+    log::debug!(
+        "init TASK_MANAGER at {:#p}",
+        core::ptr::addr_of!(TASK_MANAGER)
+    );
+    unsafe {
+        core::ptr::write_volatile(core::ptr::addr_of!(TASK_MANAGER) as _, task_manager);
+    }
 }
-
 ///Interface offered to add task
 pub fn add_task(task: Arc<TaskControlBlock>) {
-    TASK_MANAGER.exclusive_access().add(task);
+    unsafe { TASK_MANAGER.exclusive_access()} .add(task);
 }
 ///Interface offered to pop the first task
 pub fn fetch_task() -> Option<Arc<TaskControlBlock>> {
-    TASK_MANAGER.exclusive_access().fetch()
+    unsafe { TASK_MANAGER.exclusive_access() }.fetch()
 }

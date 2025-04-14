@@ -102,15 +102,21 @@ pub(crate) fn trap_handler() -> ! {
                     task::exit_current_and_run_next(-3);
                 }
                 Exception::Breakpoint => todo!(),
-                Exception::LoadFault
+                exception @ (Exception::LoadFault
                 | Exception::StoreFault
                 | Exception::LoadPageFault
                 | Exception::StorePageFault
                 | Exception::LoadMisaligned
                 | Exception::StoreMisaligned
                 | Exception::InstructionMisaligned
-                | Exception::InstructionFault => {
-                    println!("[kernel] PageFault in application, kernel killed it.");
+                | Exception::InstructionFault) => {
+                    println!(
+                        "[kernel] {:?} in application, bad addr = {:#x}, bad instruction = {:#x}, kernel killed it.",
+                        exception,
+                        stval,
+                        task::current_trap_cx().sepc,
+                    );
+                    // page fault exit code
                     task::exit_current_and_run_next(-2);
                 }
                 Exception::UserEnvCall => {

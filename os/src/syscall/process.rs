@@ -1,7 +1,11 @@
 //! App management syscalls
 use alloc::sync::Arc;
 
-use crate::{loader, memory, task, timer};
+use crate::{
+    loader, memory,
+    task::{self, current_task},
+    timer,
+};
 
 /// task exits and submit an exit code
 pub fn sys_exit(exit_code: i32) -> ! {
@@ -19,6 +23,11 @@ pub fn sys_yield() -> isize {
 /// get time in milliseconds
 pub fn sys_get_time() -> isize {
     timer::get_time_ms() as isize
+}
+
+/// get time in milliseconds
+pub fn sys_get_pid() -> isize {
+    current_task().unwrap().pid.0 as _
 }
 
 /// change data segment size

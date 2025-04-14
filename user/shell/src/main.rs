@@ -15,11 +15,11 @@ use alloc::string::String;
 use libr::console::getchar;
 use libr::{exec, fork, waitpid};
 
+const PROMPT: &str = "bish >";
 #[unsafe(no_mangle)]
 pub fn main() -> i32 {
-    println!("Rust user shell");
     let mut line: String = String::new();
-    print!(">> ");
+    print!("{}", PROMPT);
     loop {
         let c = getchar();
         match c {
@@ -43,7 +43,7 @@ pub fn main() -> i32 {
                     }
                     line.clear();
                 }
-                print!(">> ");
+                print!("{}", PROMPT);
             }
             BS | DL => {
                 if !line.is_empty() {

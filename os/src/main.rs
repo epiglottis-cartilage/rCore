@@ -4,7 +4,7 @@
 #![feature(step_trait)]
 #![feature(new_range_api)]
 #![feature(fn_align)]
-
+#![allow(static_mut_refs)]
 pub mod lang_items;
 
 mod sbi;
@@ -26,8 +26,8 @@ global_asm!(include_str!("entry.asm"));
 
 use log::*;
 
-#[unsafe(no_mangle)]
-pub fn rust_main() -> ! {
+#[unsafe(export_name = "rust_main")]
+pub fn main() -> ! {
     clear_bss();
     logging::init();
     trap::init();

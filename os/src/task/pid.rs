@@ -38,18 +38,27 @@ impl PidAllocator {
 pub struct PidHandle(pub usize);
 impl Drop for PidHandle {
     fn drop(&mut self) {
-        PID_ALLOCATOR.exclusive_access().dealloc(self.0);
+        unsafe { PID_ALLOCATOR.exclusive_access() }.dealloc(self.0);
     }
 }
+static mut PID_ALLOCATOR: UPSafeCell<PidAllocator> =
+    unsafe { core::mem::transmute([0x01u8; size_of::<UPSafeCell<PidAllocator>>()]) };
 
-lazy_static::lazy_static! {
-    pub static ref PID_ALLOCATOR: UPSafeCell<PidAllocator> = unsafe {
-        UPSafeCell::new(PidAllocator::new())
+#[deny(unused)]
+/// Initialize the PID allocator
+pub fn init() {
+    let pid_allocator = unsafe { UPSafeCell::new(PidAllocator::new()) };
+    log::debug!(
+        "init PID_ALLOCATOR at {:#p}",
+        core::ptr::addr_of!(PID_ALLOCATOR)
+    );
+    unsafe {
+        core::ptr::write_volatile(core::ptr::addr_of!(PID_ALLOCATOR) as _, pid_allocator);
     };
 }
 
 pub fn pid_alloc() -> PidHandle {
-    PID_ALLOCATOR.exclusive_access().alloc()
+    unsafe { PID_ALLOCATOR.exclusive_access() }.alloc()
 }
 
 /// Return (bottom, top) of a kernel stack in kernel space.
@@ -70,7 +79,7 @@ impl KernelStack {
     pub fn new(pid_handle: &PidHandle) -> Self {
         let pid = pid_handle.0;
         let (kernel_stack_bottom, kernel_stack_top) = kernel_stack_position(pid);
-        KERNEL_SPACE.exclusive_access().insert_framed_area(
+        unsafe { KERNEL_SPACE.exclusive_access() }.insert_framed_area(
             kernel_stack_bottom.into(),
             kernel_stack_top.into(),
             MapPermission::R | MapPermission::W,
@@ -101,8 +110,7 @@ impl Drop for KernelStack {
     fn drop(&mut self) {
         let (kernel_stack_bottom, _) = kernel_stack_position(self.pid);
         let kernel_stack_bottom_va: VirtAddr = kernel_stack_bottom.into();
-        KERNEL_SPACE
-            .exclusive_access()
+        unsafe { KERNEL_SPACE.exclusive_access() }
             .pop_area_with_start_vpn(kernel_stack_bottom_va.into());
     }
 }

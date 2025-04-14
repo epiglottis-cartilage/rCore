@@ -86,7 +86,7 @@ impl TaskControlBlock {
         };
         // prepare TrapContext in user space
         let trap_cx = task_control_block.inner_exclusive_access().get_trap_cx();
-        let kernel_ppn: PhysPageNum = KERNEL_SPACE.exclusive_access().token().into();
+        let kernel_ppn: PhysPageNum = unsafe { KERNEL_SPACE.exclusive_access().token() }.into();
         *trap_cx = TrapContext::app_init_context(
             entry_point,
             user_sp,
@@ -114,7 +114,7 @@ impl TaskControlBlock {
         inner.base_size = user_sp;
         // initialize trap_cx
         let trap_cx = inner.get_trap_cx();
-        let kernel_ppn: PhysPageNum = KERNEL_SPACE.exclusive_access().token().into();
+        let kernel_ppn: PhysPageNum = unsafe { KERNEL_SPACE.exclusive_access().token().into() };
         *trap_cx = TrapContext::app_init_context(
             entry_point,
             user_sp,

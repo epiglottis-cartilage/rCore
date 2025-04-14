@@ -21,7 +21,6 @@ static mut HEAP_SPACE: [MaybeUninit<u8>; KERNEL_HEAP_SIZE] =
 #[deny(dead_code)]
 /// initiate heap allocator
 pub fn init() {
-    #[allow(static_mut_refs)]
     HEAP_ALLOCATOR
         .lock()
         .init_from_slice(unsafe { HEAP_SPACE.as_mut_slice() });

@@ -24,5 +24,6 @@ pub use page_table::{PageTableEntry, translate_sized, translate_str, translated_
 pub fn init() {
     heap_allocator::init();
     frame_allocator::init();
-    KERNEL_SPACE.exclusive_access().activate();
+    memory_set::init();
+    unsafe { KERNEL_SPACE.exclusive_access() }.activate();
 }

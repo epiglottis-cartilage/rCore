@@ -1,0 +1,24 @@
+#! /bin/sh
+
+if [ $# -ne 1 ]; then
+    echo "Usage: $0 <name>"
+    exit 1
+fi
+
+name=$1
+
+cargo new --bin user/$name
+rm -rf user/$name/.git
+echo "libr = { path = \"../../libr\" }" >> user/$name/Cargo.toml
+echo "
+#![no_std]
+#![no_main]
+
+#[macro_use]
+extern crate libr;
+
+#[unsafe(no_mangle)]
+fn main() -> i32 {
+    0
+}
+"> user/$name/src/main.rs

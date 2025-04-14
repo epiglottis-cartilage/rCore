@@ -25,6 +25,7 @@ pub fn syscall(syscall_id: SyscallID, args: [usize; 3]) -> isize {
         SyscallID::Exit => sys_exit(args[0] as i32),
         SyscallID::Yield => sys_yield(),
         SyscallID::GetTime => sys_get_time(),
+        SyscallID::GetPid => sys_get_pid(),
         SyscallID::Sbrk => sys_sbrk(args[0] as isize),
         SyscallID::Fork => sys_fork(),
         SyscallID::Exec => sys_exec(args[0] as *const u8),
