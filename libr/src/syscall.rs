@@ -37,6 +37,10 @@ pub(crate) fn sys_yield() -> isize {
 pub(crate) fn sys_get_time() -> isize {
     syscall(SyscallID::GetTime, [0, 0, 0])
 }
+pub fn sys_get_pid() -> isize {
+    syscall(SyscallID::GetPid, [0, 0, 0])
+}
+
 pub(crate) fn sys_sbrk(delta: isize) -> isize {
     syscall(SyscallID::Sbrk, [delta.cast_unsigned(), 0, 0])
 }

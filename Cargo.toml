@@ -12,6 +12,8 @@ members = [
     "user/sbrk_test",
     "user/init",
     "user/shell",
+    "user/exit",
+    "user/stack_overflow", "user/forktree",
 ]
 resolver = "3"
 

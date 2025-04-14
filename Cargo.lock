@@ -34,6 +34,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "361a90feb7004eca4019fb28352a9465666b24f840f5c3cddf0ff13920590b89"
 
 [[package]]
+name = "exit"
+version = "0.1.0"
+dependencies = [
+ "libr",
+]
+
+[[package]]
+name = "forktree"
+version = "0.1.0"
+dependencies = [
+ "libr",
+]
+
+[[package]]
 name = "include_bytes_aligned"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -240,6 +254,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5b9eb1a2f4c41445a3a0ff9abc5221c5fcd28e1f13cd7c0397706f9ac938ddb0"
 dependencies = [
  "lock_api",
+]
+
+[[package]]
+name = "stack_overflow"
+version = "0.1.0"
+dependencies = [
+ "libr",
 ]
 
 [[package]]
