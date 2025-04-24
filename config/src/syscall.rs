@@ -1,6 +1,8 @@
 #[repr(usize)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SyscallID {
+    Open = 56,
+    Close = 57,
     Read = 63,
     Write = 64,
     Exit = 93,

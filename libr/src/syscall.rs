@@ -1,4 +1,4 @@
-use config::syscall::SyscallID;
+use config::{flag, syscall::SyscallID};
 use core::arch::asm;
 
 fn syscall(id: SyscallID, args: [usize; 3]) -> isize {
@@ -14,7 +14,12 @@ fn syscall(id: SyscallID, args: [usize; 3]) -> isize {
     }
     ret
 }
-
+pub(crate) fn sys_open(path: &str, flag: flag::fs::OpenFlag) -> isize {
+    syscall(SyscallID::Open, [path.as_ptr() as usize, flag.bits(), 0])
+}
+pub(crate) fn sys_close(fd: usize) -> isize {
+    syscall(SyscallID::Close, [fd, 0, 0])
+}
 pub(crate) fn sys_read(fd: usize, buffer: &mut [u8]) -> isize {
     syscall(
         SyscallID::Read,

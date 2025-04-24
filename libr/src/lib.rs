@@ -7,6 +7,7 @@ pub mod console;
 mod lang_items;
 mod syscall;
 
+use config::flag;
 use linked_list_allocator::LockedHeap;
 use syscall::*;
 
@@ -38,6 +39,12 @@ fn main() -> i32 {
     panic!("Cannot find main!");
 }
 
+pub fn open(name: &str, flags: flag::fs::OpenFlag) -> isize {
+    sys_open(name, flags)
+}
+pub fn close(fd: usize) -> isize {
+    sys_close(fd)
+}
 pub fn read(fd: usize, buf: &mut [u8]) -> isize {
     sys_read(fd, buf)
 }
