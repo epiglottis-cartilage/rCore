@@ -5,6 +5,7 @@ use super::{TaskStatus, fetch_task};
 use crate::sync::UPSafeCell;
 use crate::trap::TrapContext;
 use alloc::sync::Arc;
+use core::ptr::{addr_of, addr_of_mut, write_volatile};
 
 ///Processor management structure
 pub struct Processor {
@@ -43,9 +44,9 @@ static mut PROCESSOR: UPSafeCell<Processor> =
 ///Initialize the processor
 pub fn init() {
     let processor = unsafe { UPSafeCell::new(Processor::new()) };
-    log::debug!("init PROCESSOR at {:#p}", core::ptr::addr_of!(PROCESSOR));
+    log::debug!("init PROCESSOR at {:#p}", addr_of!(PROCESSOR));
     unsafe {
-        core::ptr::write_volatile(core::ptr::addr_of!(PROCESSOR) as _, processor);
+        write_volatile(addr_of_mut!(PROCESSOR), processor);
     }
 }
 
@@ -73,15 +74,11 @@ pub fn run_tasks() {
 }
 ///Take the current task,leaving a None in its place
 pub fn take_current_task() -> Option<Arc<TaskControlBlock>> {
-    unsafe {
-        PROCESSOR.exclusive_access().take_current()
-    }
+    unsafe { PROCESSOR.exclusive_access().take_current() }
 }
 ///Get running task
 pub fn current_task() -> Option<Arc<TaskControlBlock>> {
-    unsafe {
-        PROCESSOR.exclusive_access().current()
-    }
+    unsafe { PROCESSOR.exclusive_access().current() }
 }
 ///Get token of the address space of current task
 pub fn current_user_token() -> usize {
