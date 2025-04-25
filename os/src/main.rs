@@ -38,7 +38,7 @@ pub fn main() -> ! {
     info!("back to world!");
     trap::init();
     loader::list_apps();
-    task::add_initproc();
+    task::init();
     trap::enable_timer_interrupt();
     timer::set_next_trigger();
     task::run_tasks();

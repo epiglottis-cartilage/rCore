@@ -22,6 +22,9 @@ static HEAP: LockedHeap = LockedHeap::empty();
 pub fn handle_alloc_error(layout: core::alloc::Layout) -> ! {
     panic!("Heap allocation error, layout = {:?}", layout);
 }
+unsafe extern "Rust" {
+    safe fn main() -> i32;
+}
 
 #[unsafe(no_mangle)]
 #[unsafe(link_section = ".text.entry")]
@@ -34,8 +37,8 @@ pub extern "C" fn _start() -> ! {
 }
 
 #[linkage = "weak"]
-#[unsafe(no_mangle)]
-fn main() -> i32 {
+#[unsafe(export_name = "main")]
+fn libr_main() -> i32 {
     panic!("Cannot find main!");
 }
 
