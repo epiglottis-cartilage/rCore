@@ -1,6 +1,7 @@
 use crate::memory::{KERNEL_SPACE, MapPermission, VirtAddr};
 use crate::sync::UPSafeCell;
 use alloc::vec::Vec;
+use core::ptr::{addr_of, addr_of_mut, write_volatile};
 // use lazy_static::lazy_static;
 
 pub struct PidAllocator {
@@ -48,12 +49,9 @@ static mut PID_ALLOCATOR: UPSafeCell<PidAllocator> =
 /// Initialize the PID allocator
 pub fn init() {
     let pid_allocator = unsafe { UPSafeCell::new(PidAllocator::new()) };
-    log::debug!(
-        "init PID_ALLOCATOR at {:#p}",
-        core::ptr::addr_of!(PID_ALLOCATOR)
-    );
+    log::debug!("init PID_ALLOCATOR at {:#p}", addr_of!(PID_ALLOCATOR));
     unsafe {
-        core::ptr::write_volatile(core::ptr::addr_of!(PID_ALLOCATOR) as _, pid_allocator);
+        write_volatile(addr_of_mut!(PID_ALLOCATOR), pid_allocator);
     };
 }
 

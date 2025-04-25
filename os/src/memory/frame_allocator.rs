@@ -5,6 +5,7 @@ use super::{PhysAddr, PhysPageNum};
 use crate::sync::UPSafeCell;
 use alloc::vec::Vec;
 use core::fmt::{self, Debug, Formatter};
+use core::ptr::{addr_of, addr_of_mut, write_volatile};
 
 /// manage a frame which has the same lifecycle as the tracker
 pub struct FrameTracker {
@@ -92,10 +93,7 @@ static mut FRAME_ALLOCATOR: UPSafeCell<StackFrameAllocator> =
 pub fn init() {
     let frame_allocator: UPSafeCell<StackFrameAllocator> =
         unsafe { UPSafeCell::new(StackFrameAllocator::new()) };
-    log::debug!(
-        "init FRAME_ALLOCATOR at {:#p}",
-        core::ptr::addr_of!(FRAME_ALLOCATOR)
-    );
+    log::debug!("init FRAME_ALLOCATOR at {:#p}", addr_of!(FRAME_ALLOCATOR));
     use crate::label::ekernel;
     use config::memory::MEMORY_END;
     frame_allocator.exclusive_access().init(
@@ -103,7 +101,7 @@ pub fn init() {
         PhysAddr::from(MEMORY_END).floor(),
     );
     unsafe {
-        core::ptr::write_volatile(core::ptr::addr_of!(FRAME_ALLOCATOR) as _, frame_allocator);
+        write_volatile(addr_of_mut!(FRAME_ALLOCATOR), frame_allocator);
     };
 }
 

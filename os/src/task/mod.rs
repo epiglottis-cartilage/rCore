@@ -21,6 +21,7 @@ mod task;
 use crate::sbi::shutdown;
 use alloc::sync::Arc;
 use context::TaskContext;
+use core::ptr::{addr_of, addr_of_mut, write_volatile};
 pub use manager::{add_task, fetch_task};
 pub use pid::{KernelStack, PidHandle, pid_alloc};
 pub use processor::{
@@ -115,9 +116,9 @@ pub fn init() {
     let init_proc = Arc::new(TaskControlBlock::new(
         get_app_data_by_name(config::INIT_PROC_NAME).unwrap(),
     ));
-    log::debug!("init INITPROC at {:#p}", core::ptr::addr_of!(INITPROC));
+    log::debug!("init INITPROC at {:#p}", addr_of!(INITPROC));
     unsafe {
-        core::ptr::write(core::ptr::addr_of!(INITPROC) as _, init_proc);
+        write_volatile(addr_of_mut!(INITPROC), init_proc);
     }
     add_task(unsafe { INITPROC.clone() });
 }
