@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "os",
+    "easy-fs",
     "libr",
     "config",
     "user/power_3",
@@ -13,7 +14,8 @@ members = [
     "user/init",
     "user/shell",
     "user/exit",
-    "user/stack_overflow", "user/forktree",
+    "user/stack_overflow",
+    "user/forktree",
 ]
 resolver = "3"
 
