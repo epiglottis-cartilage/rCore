@@ -19,6 +19,8 @@ pub use memory_set::{KERNEL_SPACE, MapPermission, MemorySet};
 use page_table::{PageTable, PageTableEntryFlags};
 pub use page_table::{PageTableEntry, translate_sized, translate_str, translated_refmut};
 
+use config::memory as cfg;
+
 #[deny(dead_code)]
 /// initiate heap allocator, frame allocator and kernel space
 pub fn init() {

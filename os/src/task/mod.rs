@@ -30,6 +30,9 @@ pub use processor::{
 use switch::__switch;
 use task::{TaskControlBlock, TaskStatus};
 
+use config::INIT_PROC_NAME;
+use config::memory as cfg;
+
 use crate::loader::get_app_data_by_name;
 
 /// Suspend the current 'Running' task and run the next task in task list.
@@ -114,7 +117,7 @@ pub fn init() {
     manager::init();
     processor::init();
     let init_proc = Arc::new(TaskControlBlock::new(
-        get_app_data_by_name(config::INIT_PROC_NAME).unwrap(),
+        get_app_data_by_name(INIT_PROC_NAME).unwrap(),
     ));
     log::debug!("init INITPROC at {:#p}", addr_of!(INITPROC));
     unsafe {

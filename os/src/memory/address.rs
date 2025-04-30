@@ -1,7 +1,7 @@
 //! Implementation of physical and virtual address and page number.
 
 use super::PageTableEntry;
-use config::memory::*;
+use super::cfg::*;
 use core::fmt::{self, Debug, Formatter};
 
 /// Definitions

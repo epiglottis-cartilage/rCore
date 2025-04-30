@@ -61,7 +61,7 @@ pub fn pid_alloc() -> PidHandle {
 
 /// Return (bottom, top) of a kernel stack in kernel space.
 pub fn kernel_stack_position(pid: usize) -> (usize, usize) {
-    use config::memory::{KERNEL_STACK_SIZE, PAGE_SIZE, TRAMPOLINE};
+    use super::cfg::{KERNEL_STACK_SIZE, PAGE_SIZE, TRAMPOLINE};
     let top = TRAMPOLINE - pid * (KERNEL_STACK_SIZE + PAGE_SIZE);
     let bottom = top - KERNEL_STACK_SIZE;
     (bottom, top)

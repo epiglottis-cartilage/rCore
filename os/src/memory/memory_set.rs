@@ -1,5 +1,6 @@
 //! Implementation of [`MapArea`] and [`MemorySet`].
 
+use super::cfg::{MEMORY_END, MMIO, PAGE_SIZE, TRAMPOLINE, TRAP_CONTEXT, USER_STACK_SIZE};
 use super::{FrameTracker, frame_alloc};
 use super::{PageTable, PageTableEntry, PageTableEntryFlags};
 use super::{PhysAddr, PhysPageNum, VirtAddr, VirtPageNum};
@@ -9,7 +10,6 @@ use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use bitflags::bitflags;
-use config::memory::{MEMORY_END, MMIO, PAGE_SIZE, TRAMPOLINE, TRAP_CONTEXT, USER_STACK_SIZE};
 use core::arch::asm;
 use core::ptr::{addr_of, addr_of_mut, write_volatile};
 

@@ -1,13 +1,13 @@
 //! Types related to task management
 
 use super::TaskContext;
+use super::cfg::TRAP_CONTEXT;
 use super::{KernelStack, PidHandle, pid_alloc};
 use crate::memory::{KERNEL_SPACE, MemorySet, PhysPageNum, VirtAddr};
 use crate::sync::UPSafeCell;
 use crate::trap::{TrapContext, trap_handler};
 use alloc::sync::{Arc, Weak};
 use alloc::vec::Vec;
-use config::memory::TRAP_CONTEXT;
 use core::cell::RefMut;
 
 pub struct TaskControlBlock {
