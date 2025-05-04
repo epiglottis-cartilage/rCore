@@ -28,7 +28,7 @@ impl CacheData {
 
 impl Drop for CacheData {
     fn drop(&mut self) {
-        unsafe { alloc::alloc::dealloc(addr_of_mut!(*self) as _, Self::layout()) };
+        unsafe { alloc::alloc::dealloc(self.0.as_mut_ptr(), Self::layout()) };
     }
 }
 
@@ -38,23 +38,11 @@ impl AsRef<[u8; BLOCK_SZ]> for CacheData {
     }
 }
 
-// impl AsRef<[u8]> for CacheData {
-//     fn as_ref(&self) -> &[u8] {
-//         self.0.as_ref()
-//     }
-// }
-
 impl AsMut<[u8; BLOCK_SZ]> for CacheData {
     fn as_mut(&mut self) -> &mut [u8; BLOCK_SZ] {
         self.0.as_mut()
     }
 }
-
-// impl AsMut<[u8]> for CacheData {
-//     fn as_mut(&mut self) -> &mut [u8] {
-//         self.0.as_mut()
-//     }
-// }
 
 /// Cached block inside memory
 pub struct BlockCache {
