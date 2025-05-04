@@ -2,6 +2,7 @@
 members = [
     "os",
     "easy-fs",
+    "easy-fs-fuse",
     "libr",
     "config",
     "user/power_3",

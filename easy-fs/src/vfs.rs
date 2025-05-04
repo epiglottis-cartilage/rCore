@@ -15,6 +15,20 @@ pub struct Inode {
     block_device: Arc<dyn BlockDevice>,
 }
 impl Inode {
+    /// Create a vfs inode
+    pub fn new(
+        block_id: u32,
+        block_offset: usize,
+        fs: Arc<Mutex<EasyFileSystem>>,
+        block_device: Arc<dyn BlockDevice>,
+    ) -> Self {
+        Self {
+            block_id: block_id as usize,
+            block_offset,
+            fs,
+            block_device,
+        }
+    }
     /// Call a function over a disk inode to read it
     fn read_disk_inode<V>(&self, f: impl FnOnce(&DiskInode) -> V) -> V {
         get_block_cache(self.block_id, Arc::clone(&self.block_device))
