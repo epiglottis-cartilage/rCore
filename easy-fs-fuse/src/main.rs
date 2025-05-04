@@ -94,7 +94,7 @@ fn efs_test() -> std::io::Result<()> {
             .read(true)
             .write(true)
             .create(true)
-            .open("../target/fs.img")?;
+            .open("/home/epiglottis/Code/rCore/target/fs.img")?;
         f.set_len(8192 * 512).unwrap();
         f
     })));

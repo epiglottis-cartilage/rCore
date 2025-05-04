@@ -23,6 +23,7 @@ pub struct EasyFileSystem {
 type DataBlock = [u8; BLOCK_SZ];
 
 impl EasyFileSystem {
+    /// A data block of block size
     pub fn create(
         block_device: Arc<dyn BlockDevice>,
         total_blocks: u32,
@@ -81,7 +82,6 @@ impl EasyFileSystem {
         block_cache_sync_all();
         Arc::new(Mutex::new(efs))
     }
-
     /// Open a block device as a filesystem
     pub fn open(block_device: Arc<dyn BlockDevice>) -> Arc<Mutex<Self>> {
         // read SuperBlock

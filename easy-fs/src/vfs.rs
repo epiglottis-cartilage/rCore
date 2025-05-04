@@ -14,6 +14,7 @@ pub struct Inode {
     fs: Arc<Mutex<EasyFileSystem>>,
     block_device: Arc<dyn BlockDevice>,
 }
+
 impl Inode {
     /// Create a vfs inode
     pub fn new(
@@ -64,12 +65,12 @@ impl Inode {
         self.read_disk_inode(|disk_inode| {
             self.find_inode_id(name, disk_inode).map(|inode_id| {
                 let (block_id, block_offset) = fs.get_disk_inode_pos(inode_id);
-                Arc::new(Self {
-                    block_id: block_id as usize,
+                Arc::new(Self::new(
+                    block_id,
                     block_offset,
-                    fs: self.fs.clone(),
-                    block_device: self.block_device.clone(),
-                })
+                    self.fs.clone(),
+                    self.block_device.clone(),
+                ))
             })
         })
     }
@@ -93,15 +94,13 @@ impl Inode {
     /// Create inode under current inode by name
     pub fn create(&self, name: &str) -> Option<Arc<Inode>> {
         let mut fs = self.fs.lock();
-        if self
-            .read_disk_inode(|root_inode: &DiskInode| {
-                // assert it is a directory
-                assert!(root_inode.is_dir());
-                // has the file been created?
-                self.find_inode_id(name, root_inode)
-            })
-            .is_some()
-        {
+        let op = |root_inode: &DiskInode| {
+            // assert it is a directory
+            assert!(root_inode.is_dir());
+            // has the file been created?
+            self.find_inode_id(name, root_inode)
+        };
+        if self.read_disk_inode(op).is_some() {
             return None;
         }
         // create a new file
@@ -132,15 +131,14 @@ impl Inode {
         let (block_id, block_offset) = fs.get_disk_inode_pos(new_inode_id);
         block_cache_sync_all();
         // return inode
-        Some(Arc::new(Self {
-            block_id: block_id as usize,
+        Some(Arc::new(Self::new(
+            block_id,
             block_offset,
-            fs: self.fs.clone(),
-            block_device: self.block_device.clone(),
-        }))
+            self.fs.clone(),
+            self.block_device.clone(),
+        )))
         // release efs lock automatically by compiler
     }
-
     /// List inodes under current inode
     pub fn ls(&self) -> Vec<String> {
         let _fs = self.fs.lock();
