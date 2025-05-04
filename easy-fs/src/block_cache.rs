@@ -1,5 +1,5 @@
-use crate::{BLOCK_CACHE_SIZE, BLOCK_SZ, BlockDevice};
-
+use super::config::{BLOCK_CACHE_SIZE, BLOCK_SZ};
+use crate::BlockDevice;
 use alloc::boxed::Box;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
