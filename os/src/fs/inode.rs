@@ -7,12 +7,12 @@
 use core::ptr::addr_of_mut;
 
 use super::File;
+use super::cfg::OpenFlag;
 use crate::drivers::BLOCK_DEVICE;
 use crate::memory::UserBuffer;
 use crate::sync::UPSafeCell;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
-use config::fs::OpenFlag;
 use easy_fs::{EasyFileSystem, Inode};
 /// A wrapper around a filesystem inode
 /// to implement File trait atop

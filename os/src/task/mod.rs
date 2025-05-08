@@ -31,8 +31,10 @@ pub use processor::{
 use switch::__switch;
 use task::{TaskControlBlock, TaskStatus};
 
-use config::INIT_PROC_NAME;
-use config::memory as cfg;
+mod cfg {
+    pub use config::INIT_PROC_NAME;
+    pub use config::memory::{KERNEL_STACK_SIZE, PAGE_SIZE, TRAMPOLINE, TRAP_CONTEXT};
+}
 
 /// Suspend the current 'Running' task and run the next task in task list.
 pub fn suspend_current_and_run_next() {
@@ -116,7 +118,7 @@ pub fn init() {
     manager::init();
     processor::init();
     let init_proc = Arc::new({
-        let inode = fs::open_file(INIT_PROC_NAME, config::fs::OpenFlag::RDONLY).unwrap();
+        let inode = fs::open_file(cfg::INIT_PROC_NAME, crate::fs::OpenFlag::RDONLY).unwrap();
         let v = inode.read_all();
         TaskControlBlock::new(v.as_slice())
     });

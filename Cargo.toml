@@ -20,7 +20,7 @@ members = [
     "user/forktest",
     "user/forktest2",
     "user/huge_write",
-    "user/matrix", "user/forktest_simple", "user/sleep_simple", "user/usertests", "user/yield_test",
+    "user/matrix", "user/forktest_simple", "user/sleep_simple", "user/usertests", "user/yield_test", "user/hello_world",
 ]
 resolver = "3"
 

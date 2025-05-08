@@ -15,7 +15,7 @@ pub struct FrameTracker {
 impl FrameTracker {
     pub fn new(ppn: PhysPageNum) -> Self {
         // page cleaning
-        log::trace!("FrameTracker ppn={:#x}", ppn.0);
+        // log::trace!("FrameTracker ppn={:#x}", ppn.0);
         let bytes_array = ppn.as_bytes();
         for i in bytes_array {
             *i = 0;
@@ -94,8 +94,8 @@ pub fn init() {
     let frame_allocator: UPSafeCell<StackFrameAllocator> =
         unsafe { UPSafeCell::new(StackFrameAllocator::new()) };
     log::debug!("init FRAME_ALLOCATOR at {:#p}", addr_of!(FRAME_ALLOCATOR));
+    use super::cfg::MEMORY_END;
     use crate::label::ekernel;
-    use config::memory::MEMORY_END;
     frame_allocator.exclusive_access().init(
         PhysAddr::from(ekernel as usize).ceil(),
         PhysAddr::from(MEMORY_END).floor(),

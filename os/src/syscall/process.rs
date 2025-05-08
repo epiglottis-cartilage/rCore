@@ -55,7 +55,7 @@ pub fn sys_exec(path: *const u8) -> isize {
         Some(path) => path,
         None => return -1,
     };
-    if let Some(app_inode) = fs::open_file(path.as_str(), config::fs::OpenFlag::RDONLY) {
+    if let Some(app_inode) = fs::open_file(path.as_str(), crate::fs::OpenFlag::RDONLY) {
         let all_data = app_inode.read_all();
         let task = current_task().unwrap();
         task.exec(all_data.as_slice());

@@ -1,8 +1,8 @@
 //! File system in os
 mod inode;
 mod stdio;
-
 use crate::memory::UserBuffer;
+pub use config::fs as cfg;
 /// File trait
 pub trait File: Send + Sync {
     /// If readable
@@ -15,6 +15,7 @@ pub trait File: Send + Sync {
     fn write(&self, buf: UserBuffer) -> usize;
 }
 
+pub use cfg::OpenFlag;
 pub use inode::{OSInode, list_apps, open_file};
 pub use stdio::{Stderr, Stdin, Stdout};
 

@@ -1,4 +1,4 @@
-use core::ptr::{addr_of, addr_of_mut};
+use core::ptr::addr_of_mut;
 
 use super::BlockDevice;
 use crate::memory::{

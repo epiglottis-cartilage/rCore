@@ -10,7 +10,8 @@
 //! `sys_` then the name of the syscall. You can find functions like this in
 //! submodules, and you should also implement syscalls this way.
 
-use config::syscall::SyscallID;
+use cfg::SyscallID;
+use config::syscall as cfg;
 
 mod fs;
 mod process;

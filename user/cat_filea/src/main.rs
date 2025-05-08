@@ -18,7 +18,7 @@ fn main() -> i32 {
         if size == 0 {
             break;
         }
-        println!("{}", core::str::from_utf8(&buf[..size]).unwrap());
+        println!("I read this:{}", core::str::from_utf8(&buf[..size]).unwrap());
     }
     close(fd);
     0
