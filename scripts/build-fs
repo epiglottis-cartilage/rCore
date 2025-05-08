@@ -1,0 +1,4 @@
+#!/bin/sh
+
+cd easy-fs-fuse 
+cargo run --release
