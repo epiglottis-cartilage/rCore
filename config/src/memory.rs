@@ -15,7 +15,7 @@ pub const VPN_WIDTH: usize = VA_WIDTH - PAGE_SIZE_BITS;
 
 pub const MEMORY_END: usize = super::qemu::MEMORY_END;
 
-pub const KERNEL_HEAP_SIZE: usize = 0x80_000;
+pub const KERNEL_HEAP_SIZE: usize = 0xF0_000;
 
 pub const PAGE_SIZE: usize = 1 << PAGE_SIZE_BITS;
 pub const PAGE_SIZE_BITS: usize = 12;
