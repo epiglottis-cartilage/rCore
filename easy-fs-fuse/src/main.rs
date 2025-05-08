@@ -1,9 +1,10 @@
-use clap::{Arg, Command};
 use easy_fs::{BlockDevice, EasyFileSystem};
 use std::fs::{File, OpenOptions, read_dir};
 use std::io::{Read, Seek, SeekFrom, Write};
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::Mutex;
+use toml::Value;
 
 const BLOCK_SZ: usize = 512;
 
@@ -25,65 +26,62 @@ impl BlockDevice for BlockFile {
     }
 }
 
-fn main() {
-    easy_fs_pack().expect("Error when packing easy-fs!");
-}
+fn main() -> std::io::Result<()> {
+    // let App { source, target } = App::parse();
+    let source = "../Cargo.toml".to_string();
+    let target = "../target/riscv64gc-unknown-none-elf/release".to_string();
 
-fn easy_fs_pack() -> std::io::Result<()> {
-    let matches = Command::new("EasyFileSystem packer")
-        .arg(
-            Arg::new("source")
-                .short('s')
-                .long("source")
-                .required(true)
-                .help("Executable source dir(with backslash)"),
-        )
-        .arg(
-            Arg::new("target")
-                .short('t')
-                .long("target")
-                .required(true)
-                .help("Executable target dir(with backslash)"),
-        )
-        .get_matches();
-    let src_path = matches.get_one::<String>("source").unwrap();
-    let target_path = matches.get_one::<String>("target").unwrap();
-    println!("src_path = {}\ntarget_path = {}", src_path, target_path);
+    let source = PathBuf::from(source).canonicalize().unwrap();
+    let target = PathBuf::from(target).canonicalize().unwrap();
+    println!(
+        "src_path = {}\ntarget_path = {}",
+        source.display(),
+        target.display()
+    );
     let block_file = Arc::new(BlockFile(Mutex::new({
         let f = OpenOptions::new()
             .read(true)
             .write(true)
             .create(true)
-            .open(format!("{}{}", target_path, "fs.img"))?;
+            .open(
+                target.join("fs.img"))?;
         f.set_len(16 * 2048 * 512).unwrap();
         f
     })));
+    easy_fs::init();
     // 16MiB, at most 4095 files
     let efs = EasyFileSystem::create(block_file, 16 * 2048, 1);
     let root_inode = Arc::new(EasyFileSystem::root_inode(&efs));
-    let apps: Vec<_> = read_dir(src_path)
+    let mut file = String::new();
+    File::open(source)
         .unwrap()
-        .into_iter()
-        .map(|dir_entry| {
-            let mut name_with_ext = dir_entry.unwrap().file_name().into_string().unwrap();
-            name_with_ext.drain(name_with_ext.find('.').unwrap()..name_with_ext.len());
-            name_with_ext
-        })
-        .collect();
-    for app in apps {
+        .read_to_string(&mut file)
+        .unwrap();
+    let workspace: toml::Table = file.as_str().parse().unwrap();
+    match &workspace["workspace"]["members"] {
+        Value::Array(v) => v,
+        _ => panic!("Error parsing workspace members"),
+    }
+    .into_iter()
+    .filter_map(|value| {
+        if let Value::String(name) = value {
+            if name.starts_with("user/") {
+                return Some(name.split('/').last().unwrap().to_string());
+            }
+        }
+        None
+    })
+    .for_each(|app| {
+        println!("load app {}", app);
         // load app data from host file system
-        let mut host_file = File::open(format!("{}{}", target_path, app)).unwrap();
+        let mut host_file = File::open(target.join(&app)).unwrap();
         let mut all_data: Vec<u8> = Vec::new();
         host_file.read_to_end(&mut all_data).unwrap();
         // create a file in easy-fs
-        let inode = root_inode.create(app.as_str()).unwrap();
+        let inode = root_inode.create(&app.as_str()).unwrap();
         // write data to easy-fs
         inode.write_at(0, all_data.as_slice());
-    }
-    // list apps
-    // for app in root_inode.ls() {
-    //     println!("{}", app);
-    // }
+    });
     Ok(())
 }
 
@@ -94,7 +92,7 @@ fn efs_test() -> std::io::Result<()> {
             .read(true)
             .write(true)
             .create(true)
-            .open("/home/epiglottis/Code/rCore/target/fs.img")?;
+            .open("fs.img")?;
         f.set_len(8192 * 512).unwrap();
         f
     })));

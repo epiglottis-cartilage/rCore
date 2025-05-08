@@ -28,7 +28,7 @@ impl CacheData {
 
 impl Drop for CacheData {
     fn drop(&mut self) {
-        unsafe { alloc::alloc::dealloc(self.0.as_mut_ptr(), Self::layout()) };
+        unsafe { ManuallyDrop::drop(&mut self.0) };
     }
 }
 
