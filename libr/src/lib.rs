@@ -7,7 +7,7 @@ pub mod console;
 mod lang_items;
 mod syscall;
 
-use config::flag;
+pub use config::fs::OpenFlag;
 use linked_list_allocator::LockedHeap;
 use syscall::*;
 
@@ -36,13 +36,7 @@ pub extern "C" fn _start() -> ! {
     exit(main());
 }
 
-#[linkage = "weak"]
-#[unsafe(export_name = "main")]
-fn libr_main() -> i32 {
-    panic!("Cannot find main!");
-}
-
-pub fn open(name: &str, flags: flag::fs::OpenFlag) -> isize {
+pub fn open(name: &str, flags: OpenFlag) -> isize {
     sys_open(name, flags)
 }
 pub fn close(fd: usize) -> isize {

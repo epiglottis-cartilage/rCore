@@ -24,8 +24,31 @@ pub const INDIRECT1_BOUND: usize = DIRECT_BOUND + INODE_INDIRECT1_COUNT;
 #[allow(unused)]
 pub const INDIRECT2_BOUND: usize = INDIRECT1_BOUND + INODE_INDIRECT2_COUNT;
 
-pub mod file_descriptor {
+pub mod fd {
     pub const STDIN: usize = 0;
     pub const STDOUT: usize = 1;
     pub const STDERR: usize = 2;
+}
+
+bitflags::bitflags! {
+    pub struct OpenFlag: usize{
+        const RDONLY = 0;
+        const WRONLY = 1 << 0;
+        const RDWR = 1 << 1;
+        const CREATE = 1 << 9;
+        const TRUNC = 1 << 10;
+    }
+}
+impl OpenFlag {
+    /// Do not check validity for simplicity
+    /// Return (readable, writable)
+    pub fn read_write(&self) -> (bool, bool) {
+        if self.is_empty() {
+            (true, false)
+        } else if self.contains(Self::WRONLY) {
+            (false, true)
+        } else {
+            (true, true)
+        }
+    }
 }

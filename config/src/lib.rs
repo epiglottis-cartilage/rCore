@@ -1,6 +1,5 @@
 #![no_std]
 #![feature(default_field_values)]
-pub mod flag;
 pub mod fs;
 pub mod memory;
 mod qemu;

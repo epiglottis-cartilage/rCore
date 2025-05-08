@@ -1,4 +1,6 @@
 //! File and filesystem-related syscalls
+use config::fs::OpenFlag;
+
 use crate::fs;
 use crate::memory;
 use crate::task;
@@ -52,11 +54,11 @@ pub fn sys_read(fd: usize, buf: *const u8, len: usize) -> isize {
     }
 }
 
-pub fn sys_open(path: *const u8, flags: u32) -> isize {
+pub fn sys_open(path: *const u8, flags: usize) -> isize {
     let task = task::current_task().unwrap();
     let token = task::current_user_token();
     let path = memory::translate_str(token, path).unwrap();
-    if let Some(inode) = fs::open_file(path.as_str(), fs::OpenFlags::from_bits(flags).unwrap()) {
+    if let Some(inode) = fs::open_file(path.as_str(), OpenFlag::from_bits(flags).unwrap()) {
         let mut inner = task.inner_exclusive_access();
         let fd = inner.alloc_fd();
         inner.fd_table[fd] = Some(inode);
@@ -64,4 +66,17 @@ pub fn sys_open(path: *const u8, flags: u32) -> isize {
     } else {
         -1
     }
+}
+
+pub fn sys_close(fd: usize) -> isize {
+    let task = task::current_task().unwrap();
+    let mut inner = task.inner_exclusive_access();
+    if fd >= inner.fd_table.len() {
+        return -1;
+    }
+    if inner.fd_table[fd].is_none() {
+        return -1;
+    }
+    inner.fd_table[fd].take();
+    0
 }

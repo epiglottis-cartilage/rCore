@@ -12,7 +12,7 @@ use crate::memory::UserBuffer;
 use crate::sync::UPSafeCell;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
-use bitflags::*;
+use config::fs::OpenFlag;
 use easy_fs::{EasyFileSystem, Inode};
 /// A wrapper around a filesystem inode
 /// to implement File trait atop
@@ -72,39 +72,10 @@ pub fn list_apps() {
     println!("**************/");
 }
 
-bitflags! {
-    ///Open file flags
-    pub struct OpenFlags: u32 {
-        ///Read only
-        const RDONLY = 0;
-        ///Write only
-        const WRONLY = 1 << 0;
-        ///Read & Write
-        const RDWR = 1 << 1;
-        ///Allow create
-        const CREATE = 1 << 9;
-        ///Clear file and return an empty one
-        const TRUNC = 1 << 10;
-    }
-}
-
-impl OpenFlags {
-    /// Do not check validity for simplicity
-    /// Return (readable, writable)
-    pub fn read_write(&self) -> (bool, bool) {
-        if self.is_empty() {
-            (true, false)
-        } else if self.contains(Self::WRONLY) {
-            (false, true)
-        } else {
-            (true, true)
-        }
-    }
-}
 ///Open file with flags
-pub fn open_file(name: &str, flags: OpenFlags) -> Option<Arc<OSInode>> {
+pub fn open_file(name: &str, flags: OpenFlag) -> Option<Arc<OSInode>> {
     let (readable, writable) = flags.read_write();
-    if flags.contains(OpenFlags::CREATE) {
+    if flags.contains(OpenFlag::CREATE) {
         if let Some(inode) = unsafe { ROOT_INODE.as_ref() }.unwrap().find(name) {
             // clear size
             inode.clear();
@@ -121,7 +92,7 @@ pub fn open_file(name: &str, flags: OpenFlags) -> Option<Arc<OSInode>> {
             .unwrap()
             .find(name)
             .map(|inode| {
-                if flags.contains(OpenFlags::TRUNC) {
+                if flags.contains(OpenFlag::TRUNC) {
                     inode.clear();
                 }
                 Arc::new(OSInode::new(readable, writable, inode))
