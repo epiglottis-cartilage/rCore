@@ -3,11 +3,12 @@
 use super::TaskContext;
 use super::cfg::TRAP_CONTEXT;
 use super::{KernelStack, PidHandle, pid_alloc};
+use crate::fs::{Stderr, Stdin, Stdout};
 use crate::memory::{KERNEL_SPACE, MemorySet, PhysPageNum, VirtAddr};
 use crate::sync::UPSafeCell;
 use crate::trap::{TrapContext, trap_handler};
 use alloc::sync::{Arc, Weak};
-use alloc::vec::Vec;
+use alloc::{vec, vec::Vec};
 use core::cell::RefMut;
 
 pub struct TaskControlBlock {
@@ -29,6 +30,7 @@ pub struct TaskControlBlockInner {
     pub parent: Option<Weak<TaskControlBlock>>,
     pub children: Vec<Arc<TaskControlBlock>>,
     pub exit_code: i32,
+    pub fd_table: Vec<Option<Arc<dyn crate::fs::File + Send + Sync>>>,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]
@@ -50,6 +52,14 @@ impl TaskControlBlockInner {
     }
     pub fn is_zombie(&self) -> bool {
         self.get_status() == TaskStatus::Zombie
+    }
+    pub fn alloc_fd(&mut self) -> usize {
+        if let Some(fd) = self.fd_table.iter().position(|fd| fd.is_none()) {
+            fd
+        } else {
+            self.fd_table.push(None);
+            self.fd_table.len() - 1
+        }
     }
 }
 impl TaskControlBlock {
@@ -81,6 +91,14 @@ impl TaskControlBlock {
                     parent: None,
                     children: Vec::new(),
                     exit_code: 0,
+                    fd_table: vec![
+                        // 0 -> stdin
+                        Some(Arc::new(Stdin)),
+                        // 1 -> stdout
+                        Some(Arc::new(Stdout)),
+                        // 2 -> stderr
+                        Some(Arc::new(Stderr)),
+                    ],
                 })
             },
         };
@@ -137,6 +155,11 @@ impl TaskControlBlock {
         let pid_handle = pid_alloc();
         let kernel_stack = KernelStack::new(&pid_handle);
         let kernel_stack_top = kernel_stack.get_top();
+        let new_fd_table = parent_inner
+            .fd_table
+            .iter()
+            .map(|fd| fd.as_ref().map(|fd| fd.clone()))
+            .collect();
         let task_control_block = Arc::new(TaskControlBlock {
             pid: pid_handle,
             kernel_stack,
@@ -150,6 +173,7 @@ impl TaskControlBlock {
                     parent: Some(Arc::downgrade(self)),
                     children: Vec::new(),
                     exit_code: 0,
+                    fd_table: new_fd_table,
                 })
             },
         });

@@ -18,6 +18,7 @@ mod switch;
 #[allow(clippy::module_inception)]
 mod task;
 
+use crate::fs;
 use crate::sbi::shutdown;
 use alloc::sync::Arc;
 use context::TaskContext;
@@ -32,8 +33,6 @@ use task::{TaskControlBlock, TaskStatus};
 
 use config::INIT_PROC_NAME;
 use config::memory as cfg;
-
-use crate::loader::get_app_data_by_name;
 
 /// Suspend the current 'Running' task and run the next task in task list.
 pub fn suspend_current_and_run_next() {
@@ -116,9 +115,11 @@ pub fn init() {
     pid::init();
     manager::init();
     processor::init();
-    let init_proc = Arc::new(TaskControlBlock::new(
-        get_app_data_by_name(INIT_PROC_NAME).unwrap(),
-    ));
+    let init_proc = Arc::new({
+        let inode = fs::open_file(INIT_PROC_NAME, fs::OpenFlags::RDONLY).unwrap();
+        let v = inode.read_all();
+        TaskControlBlock::new(v.as_slice())
+    });
     log::debug!("init INITPROC at {:#p}", addr_of!(INITPROC));
     unsafe {
         write_volatile(addr_of_mut!(INITPROC), init_proc);

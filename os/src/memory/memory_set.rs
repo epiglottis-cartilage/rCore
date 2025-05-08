@@ -24,7 +24,10 @@ pub fn init() {
         write_volatile(addr_of_mut!(KERNEL_SPACE), kernel_space);
     };
 }
-
+///Get kernelspace root ppn
+pub fn kernel_token() -> usize {
+    unsafe { &KERNEL_SPACE }.exclusive_access().token()
+}
 /// memory set structure, controls virtual-memory space
 pub struct MemorySet {
     page_table: PageTable,

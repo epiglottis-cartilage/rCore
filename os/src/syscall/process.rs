@@ -2,7 +2,7 @@
 use alloc::sync::Arc;
 
 use crate::{
-    loader, memory,
+    fs, memory,
     task::{self, current_task},
     timer,
 };
@@ -55,9 +55,10 @@ pub fn sys_exec(path: *const u8) -> isize {
         Some(path) => path,
         None => return -1,
     };
-    if let Some(data) = loader::get_app_data_by_name(path.as_str()) {
-        let task = task::current_task().unwrap();
-        task.exec(data);
+    if let Some(app_inode) = fs::open_file(path.as_str(), fs::OpenFlags::RDONLY) {
+        let all_data = app_inode.read_all();
+        let task = current_task().unwrap();
+        task.exec(all_data.as_slice());
         0
     } else {
         -1
@@ -93,7 +94,7 @@ pub fn sys_waitpid(pid: isize, exit_code_ptr: *mut i32) -> isize {
         // ++++ temporarily access child TCB exclusively
         let exit_code = child.inner_exclusive_access().exit_code;
         // ++++ release child PCB
-        *memory::translated_refmut(inner.memory_set.token(), exit_code_ptr) = exit_code;
+        *memory::translated_ref_mut(inner.memory_set.token(), exit_code_ptr) = exit_code;
         found_pid as isize
     } else {
         -2

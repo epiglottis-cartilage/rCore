@@ -5,7 +5,7 @@ fn main() {
     println!("cargo:rerun-if-changed=/user/");
     println!("cargo:rerun-if-changed={}", TARGET_PATH);
     println!("cargo:rustc-env=LOG=TRACE");
-    insert_app_data().unwrap();
+    // insert_app_data().unwrap();
 }
 
 static TARGET_PATH: &str = "target/riscv64gc-unknown-none-elf/release/";
