@@ -36,7 +36,6 @@ pub fn main() -> ! {
     memory::init();
     info!("back to world!");
     memory::remap_test();
-    info!("back to world!");
     trap::init();
 
     drivers::init();

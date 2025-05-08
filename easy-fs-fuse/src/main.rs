@@ -1,7 +1,7 @@
 use easy_fs::{BlockDevice, EasyFileSystem};
-use std::fs::{File, OpenOptions, read_dir};
+use std::fs::{File, OpenOptions};
 use std::io::{Read, Seek, SeekFrom, Write};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::Mutex;
 use toml::Value;
@@ -43,8 +43,7 @@ fn main() -> std::io::Result<()> {
             .read(true)
             .write(true)
             .create(true)
-            .open(
-                target.join("fs.img"))?;
+            .open(target.join("fs.img"))?;
         f.set_len(16 * 2048 * 512).unwrap();
         f
     })));

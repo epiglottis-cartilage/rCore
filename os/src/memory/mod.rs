@@ -29,5 +29,8 @@ pub fn init() {
     heap_allocator::init();
     frame_allocator::init();
     memory_set::init();
-    unsafe { KERNEL_SPACE.exclusive_access() }.activate();
+    unsafe { KERNEL_SPACE.as_ref() }
+        .unwrap()
+        .exclusive_access()
+        .activate();
 }

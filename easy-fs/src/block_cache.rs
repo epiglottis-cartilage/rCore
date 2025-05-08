@@ -166,16 +166,12 @@ impl BlockCacheManager {
 }
 
 /// The global block cache manager
-pub static mut BLOCK_CACHE_MANAGER: Mutex<BlockCacheManager> =
-    unsafe { core::mem::transmute([01u8; core::mem::size_of::<Mutex<BlockCacheManager>>()]) };
+pub static mut BLOCK_CACHE_MANAGER: Option<Mutex<BlockCacheManager>> = None;
 
 #[deny(dead_code)]
 pub fn init() {
     unsafe {
-        core::ptr::write_volatile(
-            addr_of_mut!(BLOCK_CACHE_MANAGER),
-            Mutex::new(BlockCacheManager::new()),
-        );
+        BLOCK_CACHE_MANAGER = Some(Mutex::new(BlockCacheManager::new()));
     }
 }
 
@@ -185,12 +181,15 @@ pub fn get_block_cache(
     block_device: Arc<dyn BlockDevice>,
 ) -> Arc<Mutex<BlockCache>> {
     #[allow(static_mut_refs)]
-    unsafe { BLOCK_CACHE_MANAGER.lock() }.get_block_cache(block_id, block_device)
+    unsafe { BLOCK_CACHE_MANAGER.as_ref() }
+        .unwrap()
+        .lock()
+        .get_block_cache(block_id, block_device)
 }
 /// Sync all block cache to block device
 pub fn block_cache_sync_all() {
     #[allow(static_mut_refs)]
-    let manager = unsafe { BLOCK_CACHE_MANAGER.lock() };
+    let manager = unsafe { BLOCK_CACHE_MANAGER.as_ref() }.unwrap().lock();
     for (_, cache) in manager.queue.iter() {
         cache.lock().sync();
     }

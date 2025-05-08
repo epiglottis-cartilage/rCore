@@ -22,7 +22,6 @@ use crate::fs;
 use crate::sbi::shutdown;
 use alloc::sync::Arc;
 use context::TaskContext;
-use core::ptr::{addr_of, addr_of_mut, write_volatile};
 pub use manager::{add_task, fetch_task};
 pub use pid::{KernelStack, PidHandle, pid_alloc};
 pub use processor::{
@@ -86,9 +85,12 @@ pub fn exit_current_and_run_next(exit_code: i32) {
 
     // ++++++ access initproc TCB exclusively
     {
-        let mut initproc_inner = unsafe { INITPROC.inner_exclusive_access() };
+        let mut initproc_inner = unsafe { INITPROC.as_ref() }
+            .unwrap()
+            .inner_exclusive_access();
         for child in inner.children.iter() {
-            child.inner_exclusive_access().parent = Some(Arc::downgrade(unsafe { &INITPROC }));
+            child.inner_exclusive_access().parent =
+                Some(Arc::downgrade(unsafe { INITPROC.as_ref() }.unwrap()));
             initproc_inner.children.push(child.clone());
         }
     }
@@ -108,8 +110,7 @@ pub fn exit_current_and_run_next(exit_code: i32) {
 
 ///Globle process that init user shell
 #[unsafe(link_section = ".data")]
-static mut INITPROC: Arc<TaskControlBlock> =
-    unsafe { core::mem::transmute([0x01u8; core::mem::size_of::<Arc<TaskControlBlock>>()]) };
+static mut INITPROC: Option<Arc<TaskControlBlock>> = None;
 ///Add init process to the manager
 
 #[deny(dead_code)]
@@ -122,9 +123,8 @@ pub fn init() {
         let v = inode.read_all();
         TaskControlBlock::new(v.as_slice())
     });
-    log::debug!("init INITPROC at {:#p}", addr_of!(INITPROC));
     unsafe {
-        write_volatile(addr_of_mut!(INITPROC), init_proc);
+        INITPROC = Some(init_proc.clone());
     }
-    add_task(unsafe { INITPROC.clone() });
+    add_task(unsafe { INITPROC.as_ref() }.unwrap().clone());
 }

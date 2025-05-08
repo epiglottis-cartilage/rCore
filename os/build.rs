@@ -9,7 +9,7 @@ fn main() {
 }
 
 static TARGET_PATH: &str = "target/riscv64gc-unknown-none-elf/release/";
-
+#[allow(dead_code)]
 fn insert_app_data() -> Result<()> {
     let mut apps: Vec<_> = read_dir("../user/")
         .unwrap()

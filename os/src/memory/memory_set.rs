@@ -11,22 +11,24 @@ use alloc::sync::Arc;
 use alloc::vec::Vec;
 use bitflags::bitflags;
 use core::arch::asm;
-use core::ptr::{addr_of, addr_of_mut, write_volatile};
+use core::ptr::addr_of;
 
-pub static mut KERNEL_SPACE: Arc<UPSafeCell<MemorySet>> =
-    unsafe { core::mem::transmute([1u8; core::mem::size_of::<Arc<UPSafeCell<MemorySet>>>()]) };
+pub static mut KERNEL_SPACE: Option<Arc<UPSafeCell<MemorySet>>> = None;
 
 #[deny(dead_code)]
 pub fn init() {
     let kernel_space = Arc::new(unsafe { UPSafeCell::new(MemorySet::new_kernel()) });
     log::trace!("init KERNEL_SPACE at {:#p}", addr_of!(KERNEL_SPACE));
     unsafe {
-        write_volatile(addr_of_mut!(KERNEL_SPACE), kernel_space);
+        KERNEL_SPACE = Some(kernel_space);
     };
 }
 ///Get kernelspace root ppn
 pub fn kernel_token() -> usize {
-    unsafe { &KERNEL_SPACE }.exclusive_access().token()
+    unsafe { KERNEL_SPACE.as_ref() }
+        .unwrap()
+        .exclusive_access()
+        .token()
 }
 /// memory set structure, controls virtual-memory space
 pub struct MemorySet {
@@ -378,7 +380,7 @@ bitflags! {
 
 #[allow(unused)]
 pub fn remap_test() {
-    let mut kernel_space = unsafe { KERNEL_SPACE.exclusive_access() };
+    let mut kernel_space = unsafe { KERNEL_SPACE.as_ref() }.unwrap().exclusive_access();
     let mid_text: VirtAddr = ((stext as usize + etext as usize) / 2).into();
     let mid_rodata: VirtAddr = ((srodata as usize + erodata as usize) / 2).into();
     let mid_data: VirtAddr = ((sdata as usize + edata as usize) / 2).into();

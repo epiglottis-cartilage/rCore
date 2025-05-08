@@ -3,7 +3,7 @@
 
 #[macro_use]
 extern crate libr;
-use libr::{OpenFlag, close, open, read, write};
+use libr::{OpenFlag, close, open, read};
 
 #[unsafe(no_mangle)]
 fn main() -> i32 {
@@ -18,7 +18,10 @@ fn main() -> i32 {
         if size == 0 {
             break;
         }
-        println!("I read this:{}", core::str::from_utf8(&buf[..size]).unwrap());
+        println!(
+            "I read this:{}",
+            core::str::from_utf8(&buf[..size]).unwrap()
+        );
     }
     close(fd);
     0
