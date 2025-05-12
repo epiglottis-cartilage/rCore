@@ -28,11 +28,13 @@ impl BlockDevice for BlockFile {
 
 fn main() -> std::io::Result<()> {
     // let App { source, target } = App::parse();
-    let source = "../Cargo.toml".to_string();
-    let target = "../target/riscv64gc-unknown-none-elf/release".to_string();
-
-    let source = PathBuf::from(source).canonicalize().unwrap();
-    let target = PathBuf::from(target).canonicalize().unwrap();
+    let args: Vec<_> = std::env::args().skip(1).collect();
+    if args.len() != 2 {
+        println!("Usage: {} <source> <target>", args[0]);
+        return Ok(());
+    }
+    let source = PathBuf::from(args[0].clone());
+    let target = PathBuf::from(args[1].clone());
     println!(
         "src_path = {}\ntarget_path = {}",
         source.display(),

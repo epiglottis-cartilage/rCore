@@ -1,5 +1,5 @@
 use std::fs::{File, read_dir};
-use std::io::{Result, Write};
+use std::io::Write;
 
 fn main() {
     println!("cargo:rerun-if-changed=/user/");
@@ -10,7 +10,7 @@ fn main() {
 
 static TARGET_PATH: &str = "target/riscv64gc-unknown-none-elf/release/";
 #[allow(dead_code)]
-fn insert_app_data() -> Result<()> {
+fn insert_app_data() {
     let mut apps: Vec<_> = read_dir("../user/")
         .unwrap()
         .into_iter()
@@ -40,6 +40,4 @@ fn insert_app_data() -> Result<()> {
         .unwrap();
     }
     writeln!(f, "];").unwrap();
-
-    Ok(())
 }
