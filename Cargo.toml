@@ -1,11 +1,10 @@
 [workspace]
 members = [
     "os",
+    "easy-fs",
+    "easy-fs-fuse",
     "libr",
     "config",
-    "user/power_3",
-    "user/power_5",
-    "user/power_7",
     "user/sleep",
     "user/load_fault",
     "user/store_fault",
@@ -13,7 +12,15 @@ members = [
     "user/init",
     "user/shell",
     "user/exit",
-    "user/stack_overflow", "user/forktree",
+    "user/stack_overflow",
+    "user/forktree",
+    "user/cat_filea",
+    "user/fantastic_text",
+    "user/filetest_simple",
+    "user/forktest",
+    "user/forktest2",
+    "user/huge_write",
+    "user/matrix", "user/forktest_simple", "user/sleep_simple", "user/usertests", "user/yield_test", "user/hello_world",
 ]
 resolver = "3"
 

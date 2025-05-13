@@ -178,10 +178,32 @@ pub fn translate_str(token: usize, ptr: *const u8) -> Option<String> {
     String::from_utf8(res).ok()
 }
 
-///translate a generic through page table and return a mutable reference
-pub fn translated_refmut<T>(token: usize, ptr: *mut T) -> &'static mut T {
+/// translate a generic through page table and return a mutable reference
+pub fn translated_ref_mut<T>(token: usize, ptr: *mut T) -> &'static mut T {
     PageTable::from_ppn(token.into())
         .translate_va((ptr as usize).into())
         .unwrap()
         .as_mut()
+}
+
+/// Array of u8 slice that user communicate with os
+pub struct UserBuffer(pub Vec<&'static mut [u8]>);
+
+impl UserBuffer {
+    /// Create a `UserBuffer` by parameter
+    pub fn new(buffers: Vec<&'static mut [u8]>) -> Self {
+        Self(buffers)
+    }
+    /// Length of `UserBuffer`
+    pub fn len(&self) -> usize {
+        self.0.iter().map(|buf| buf.len()).sum()
+    }
+    /// Iterator over the buffer
+    pub fn as_bytes(&mut self) -> impl Iterator<Item = &mut u8> {
+        self.0.iter_mut().flat_map(|buf| buf.iter_mut())
+    }
+    /// Iterator over the buffer
+    pub fn into_bytes(self) -> impl IntoIterator<Item = &'static mut u8> {
+        self.0.into_iter().flat_map(|buf| buf.into_iter())
+    }
 }

@@ -10,8 +10,9 @@ pub mod lang_items;
 mod sbi;
 #[macro_use]
 mod console;
+mod drivers;
+mod fs;
 mod label;
-mod loader;
 mod logging;
 mod memory;
 mod sync;
@@ -35,10 +36,13 @@ pub fn main() -> ! {
     memory::init();
     info!("back to world!");
     memory::remap_test();
-    info!("back to world!");
     trap::init();
-    loader::list_apps();
-    task::add_initproc();
+
+    drivers::init();
+    easy_fs::init();
+    fs::init();
+    fs::list_apps();
+    task::init();
     trap::enable_timer_interrupt();
     timer::set_next_trigger();
     task::run_tasks();

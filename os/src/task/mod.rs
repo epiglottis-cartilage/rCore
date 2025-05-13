@@ -18,6 +18,7 @@ mod switch;
 #[allow(clippy::module_inception)]
 mod task;
 
+use crate::fs;
 use crate::sbi::shutdown;
 use alloc::sync::Arc;
 use context::TaskContext;
@@ -29,7 +30,10 @@ pub use processor::{
 use switch::__switch;
 use task::{TaskControlBlock, TaskStatus};
 
-use crate::loader::get_app_data_by_name;
+mod cfg {
+    pub use config::INIT_PROC_NAME;
+    pub use config::memory::{KERNEL_STACK_SIZE, PAGE_SIZE, TRAMPOLINE, TRAP_CONTEXT};
+}
 
 /// Suspend the current 'Running' task and run the next task in task list.
 pub fn suspend_current_and_run_next() {
@@ -81,9 +85,12 @@ pub fn exit_current_and_run_next(exit_code: i32) {
 
     // ++++++ access initproc TCB exclusively
     {
-        let mut initproc_inner = unsafe { INITPROC.inner_exclusive_access() };
+        let mut initproc_inner = unsafe { INITPROC.as_ref() }
+            .unwrap()
+            .inner_exclusive_access();
         for child in inner.children.iter() {
-            child.inner_exclusive_access().parent = Some(Arc::downgrade(unsafe { &INITPROC }));
+            child.inner_exclusive_access().parent =
+                Some(Arc::downgrade(unsafe { INITPROC.as_ref() }.unwrap()));
             initproc_inner.children.push(child.clone());
         }
     }
@@ -103,8 +110,7 @@ pub fn exit_current_and_run_next(exit_code: i32) {
 
 ///Globle process that init user shell
 #[unsafe(link_section = ".data")]
-static mut INITPROC: Arc<TaskControlBlock> =
-    unsafe { core::mem::transmute([0x01u8; core::mem::size_of::<Arc<TaskControlBlock>>()]) };
+static mut INITPROC: Option<Arc<TaskControlBlock>> = None;
 ///Add init process to the manager
 
 #[deny(dead_code)]
@@ -112,12 +118,13 @@ pub fn init() {
     pid::init();
     manager::init();
     processor::init();
-    let init_proc = Arc::new(TaskControlBlock::new(
-        get_app_data_by_name(config::INIT_PROC_NAME).unwrap(),
-    ));
-    log::debug!("init INITPROC at {:#p}", core::ptr::addr_of!(INITPROC));
+    let init_proc = Arc::new({
+        let inode = fs::open_file(cfg::INIT_PROC_NAME, crate::fs::OpenFlag::RDONLY).unwrap();
+        let v = inode.read_all();
+        TaskControlBlock::new(v.as_slice())
+    });
     unsafe {
-        core::ptr::write(core::ptr::addr_of!(INITPROC) as _, init_proc);
+        INITPROC = Some(init_proc.clone());
     }
-    add_task(unsafe { INITPROC.clone() });
+    add_task(unsafe { INITPROC.as_ref() }.unwrap().clone());
 }

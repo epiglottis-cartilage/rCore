@@ -1,49 +1,81 @@
 //! File and filesystem-related syscalls
-use crate::sbi;
-use crate::{memory, task};
 
-const FD_STDIN: usize = 0;
-const FD_STDOUT: usize = 1;
+use crate::fs;
+use crate::memory;
+use crate::task;
 
 /// write buf of length `len`  to a file with `fd`
 pub fn sys_write(fd: usize, buf: *const u8, len: usize) -> isize {
-    match fd {
-        FD_STDOUT => {
-            let buffers = memory::translate_sized(task::current_user_token().into(), buf, len);
-            for buffer in buffers {
-                print!("{}", core::str::from_utf8(buffer).unwrap());
-            }
-            len as isize
+    let token = task::current_user_token();
+    let task = task::current_task().unwrap();
+    let inner = task.inner_exclusive_access();
+    if fd >= inner.fd_table.len() {
+        return -1;
+    }
+    if let Some(file) = &inner.fd_table[fd] {
+        if !file.writable() {
+            return -1;
         }
-        _ => {
-            panic!("Unsupported fd in sys_write!");
-        }
+        let file = file.clone();
+        // release current task TCB manually to avoid multi-borrow
+        drop(inner);
+        file.write(memory::UserBuffer::new(memory::translate_sized(
+            token.into(),
+            buf,
+            len,
+        ))) as isize
+    } else {
+        -1
     }
 }
 
 pub fn sys_read(fd: usize, buf: *const u8, len: usize) -> isize {
-    match fd {
-        FD_STDIN => {
-            assert_eq!(len, 1, "Only support len = 1 in sys_read!");
-            let mut c: usize;
-            loop {
-                c = sbi::console_getchar();
-                if c == 0 {
-                    task::suspend_current_and_run_next();
-                    continue;
-                } else {
-                    break;
-                }
-            }
-            let ch = c as u8;
-            let mut buffers = memory::translate_sized(task::current_user_token().into(), buf, len);
-            unsafe {
-                buffers[0].as_mut_ptr().write_volatile(ch);
-            }
-            1
-        }
-        _ => {
-            panic!("Unsupported fd in sys_read!");
-        }
+    let token = task::current_user_token();
+    let task = task::current_task().unwrap();
+    let inner = task.inner_exclusive_access();
+    if fd >= inner.fd_table.len() {
+        return -1;
     }
+    if let Some(file) = &inner.fd_table[fd] {
+        let file = file.clone();
+        if !file.readable() {
+            return -1;
+        }
+        // release current task TCB manually to avoid multi-borrow
+        drop(inner);
+        file.read(memory::UserBuffer::new(memory::translate_sized(
+            token.into(),
+            buf,
+            len,
+        ))) as isize
+    } else {
+        -1
+    }
+}
+
+pub fn sys_open(path: *const u8, flags: usize) -> isize {
+    let task = task::current_task().unwrap();
+    let token = task::current_user_token();
+    let path = memory::translate_str(token, path).unwrap();
+    if let Some(inode) = fs::open_file(path.as_str(), fs::OpenFlag::from_bits(flags).unwrap()) {
+        let mut inner = task.inner_exclusive_access();
+        let fd = inner.alloc_fd();
+        inner.fd_table[fd] = Some(inode);
+        fd as isize
+    } else {
+        -1
+    }
+}
+
+pub fn sys_close(fd: usize) -> isize {
+    let task = task::current_task().unwrap();
+    let mut inner = task.inner_exclusive_access();
+    if fd >= inner.fd_table.len() {
+        return -1;
+    }
+    if inner.fd_table[fd].is_none() {
+        return -1;
+    }
+    inner.fd_table[fd].take();
+    0
 }

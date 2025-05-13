@@ -1,6 +1,7 @@
 use crate::memory::{KERNEL_SPACE, MapPermission, VirtAddr};
 use crate::sync::UPSafeCell;
 use alloc::vec::Vec;
+use core::ptr::addr_of;
 // use lazy_static::lazy_static;
 
 pub struct PidAllocator {
@@ -38,32 +39,33 @@ impl PidAllocator {
 pub struct PidHandle(pub usize);
 impl Drop for PidHandle {
     fn drop(&mut self) {
-        unsafe { PID_ALLOCATOR.exclusive_access() }.dealloc(self.0);
+        unsafe { PID_ALLOCATOR.as_ref() }
+            .unwrap()
+            .exclusive_access()
+            .dealloc(self.0);
     }
 }
-static mut PID_ALLOCATOR: UPSafeCell<PidAllocator> =
-    unsafe { core::mem::transmute([0x01u8; size_of::<UPSafeCell<PidAllocator>>()]) };
-
+static mut PID_ALLOCATOR: Option<UPSafeCell<PidAllocator>> = None;
 #[deny(unused)]
 /// Initialize the PID allocator
 pub fn init() {
     let pid_allocator = unsafe { UPSafeCell::new(PidAllocator::new()) };
-    log::debug!(
-        "init PID_ALLOCATOR at {:#p}",
-        core::ptr::addr_of!(PID_ALLOCATOR)
-    );
+    log::debug!("init PID_ALLOCATOR at {:#p}", addr_of!(PID_ALLOCATOR));
     unsafe {
-        core::ptr::write_volatile(core::ptr::addr_of!(PID_ALLOCATOR) as _, pid_allocator);
+        PID_ALLOCATOR = Some(pid_allocator);
     };
 }
 
 pub fn pid_alloc() -> PidHandle {
-    unsafe { PID_ALLOCATOR.exclusive_access() }.alloc()
+    unsafe { PID_ALLOCATOR.as_ref() }
+        .unwrap()
+        .exclusive_access()
+        .alloc()
 }
 
 /// Return (bottom, top) of a kernel stack in kernel space.
 pub fn kernel_stack_position(pid: usize) -> (usize, usize) {
-    use config::memory::{KERNEL_STACK_SIZE, PAGE_SIZE, TRAMPOLINE};
+    use super::cfg::{KERNEL_STACK_SIZE, PAGE_SIZE, TRAMPOLINE};
     let top = TRAMPOLINE - pid * (KERNEL_STACK_SIZE + PAGE_SIZE);
     let bottom = top - KERNEL_STACK_SIZE;
     (bottom, top)
@@ -79,11 +81,14 @@ impl KernelStack {
     pub fn new(pid_handle: &PidHandle) -> Self {
         let pid = pid_handle.0;
         let (kernel_stack_bottom, kernel_stack_top) = kernel_stack_position(pid);
-        unsafe { KERNEL_SPACE.exclusive_access() }.insert_framed_area(
-            kernel_stack_bottom.into(),
-            kernel_stack_top.into(),
-            MapPermission::R | MapPermission::W,
-        );
+        unsafe { KERNEL_SPACE.as_ref() }
+            .unwrap()
+            .exclusive_access()
+            .insert_framed_area(
+                kernel_stack_bottom.into(),
+                kernel_stack_top.into(),
+                MapPermission::R | MapPermission::W,
+            );
         KernelStack { pid: pid_handle.0 }
     }
     #[allow(unused)]
@@ -110,7 +115,9 @@ impl Drop for KernelStack {
     fn drop(&mut self) {
         let (kernel_stack_bottom, _) = kernel_stack_position(self.pid);
         let kernel_stack_bottom_va: VirtAddr = kernel_stack_bottom.into();
-        unsafe { KERNEL_SPACE.exclusive_access() }
+        unsafe { KERNEL_SPACE.as_ref() }
+            .unwrap()
+            .exclusive_access()
             .pop_area_with_start_vpn(kernel_stack_bottom_va.into());
     }
 }

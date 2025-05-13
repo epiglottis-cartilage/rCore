@@ -1,0 +1,13 @@
+#!/bin/python
+
+# check if the current directory is the root of the repository (end with rCore)
+import os
+import sys
+import subprocess
+
+def is_root_dir():
+    return os.path.basename(os.getcwd()) == "rCore"
+
+if not is_root_dir():
+    print("Please run this script from the root directory of the repository.")
+    sys.exit(1)

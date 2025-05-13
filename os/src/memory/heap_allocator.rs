@@ -12,7 +12,7 @@ pub fn handle_alloc_error(layout: core::alloc::Layout) -> ! {
     panic!("Heap allocation error, layout = {:?}", layout);
 }
 
-use config::memory::KERNEL_HEAP_SIZE;
+use super::cfg::KERNEL_HEAP_SIZE;
 use core::mem::MaybeUninit;
 /// heap space ([u8; KERNEL_HEAP_SIZE])
 static mut HEAP_SPACE: [MaybeUninit<u8>; KERNEL_HEAP_SIZE] =

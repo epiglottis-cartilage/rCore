@@ -1,5 +1,6 @@
 //! Implementation of [`MapArea`] and [`MemorySet`].
 
+use super::cfg::{MEMORY_END, MMIO, PAGE_SIZE, TRAMPOLINE, TRAP_CONTEXT, USER_STACK_SIZE};
 use super::{FrameTracker, frame_alloc};
 use super::{PageTable, PageTableEntry, PageTableEntryFlags};
 use super::{PhysAddr, PhysPageNum, VirtAddr, VirtPageNum};
@@ -9,24 +10,26 @@ use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use bitflags::bitflags;
-use config::memory::{MEMORY_END, MMIO, PAGE_SIZE, TRAMPOLINE, TRAP_CONTEXT, USER_STACK_SIZE};
 use core::arch::asm;
+use core::ptr::addr_of;
 
-pub static mut KERNEL_SPACE: Arc<UPSafeCell<MemorySet>> =
-    unsafe { core::mem::transmute([1u8; core::mem::size_of::<Arc<UPSafeCell<MemorySet>>>()]) };
+pub static mut KERNEL_SPACE: Option<Arc<UPSafeCell<MemorySet>>> = None;
 
 #[deny(dead_code)]
 pub fn init() {
     let kernel_space = Arc::new(unsafe { UPSafeCell::new(MemorySet::new_kernel()) });
-    log::trace!(
-        "init KERNEL_SPACE at {:#p}",
-        core::ptr::addr_of!(KERNEL_SPACE)
-    );
+    log::trace!("init KERNEL_SPACE at {:#p}", addr_of!(KERNEL_SPACE));
     unsafe {
-        core::ptr::write_volatile(core::ptr::addr_of!(KERNEL_SPACE) as _, kernel_space);
+        KERNEL_SPACE = Some(kernel_space);
     };
 }
-
+///Get kernelspace root ppn
+pub fn kernel_token() -> usize {
+    unsafe { KERNEL_SPACE.as_ref() }
+        .unwrap()
+        .exclusive_access()
+        .token()
+}
 /// memory set structure, controls virtual-memory space
 pub struct MemorySet {
     page_table: PageTable,
@@ -377,7 +380,7 @@ bitflags! {
 
 #[allow(unused)]
 pub fn remap_test() {
-    let mut kernel_space = unsafe { KERNEL_SPACE.exclusive_access() };
+    let mut kernel_space = unsafe { KERNEL_SPACE.as_ref() }.unwrap().exclusive_access();
     let mid_text: VirtAddr = ((stext as usize + etext as usize) / 2).into();
     let mid_rodata: VirtAddr = ((srodata as usize + erodata as usize) / 2).into();
     let mid_data: VirtAddr = ((sdata as usize + edata as usize) / 2).into();

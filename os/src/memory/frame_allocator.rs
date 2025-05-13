@@ -14,7 +14,7 @@ pub struct FrameTracker {
 impl FrameTracker {
     pub fn new(ppn: PhysPageNum) -> Self {
         // page cleaning
-        log::trace!("FrameTracker ppn={:#x}", ppn.0);
+        // log::trace!("FrameTracker ppn={:#x}", ppn.0);
         let bytes_array = ppn.as_bytes();
         for i in bytes_array {
             *i = 0;
@@ -84,39 +84,38 @@ impl FrameAllocator for StackFrameAllocator {
 }
 
 // type FrameAllocatorImpl = StackFrameAllocator;
-static mut FRAME_ALLOCATOR: UPSafeCell<StackFrameAllocator> =
-    unsafe { core::mem::transmute([1u8; core::mem::size_of::<UPSafeCell<StackFrameAllocator>>()]) };
-
+static mut FRAME_ALLOCATOR: Option<UPSafeCell<StackFrameAllocator>> = None;
 #[deny(unused)]
 /// initiate the frame allocator using `ekernel` and `MEMORY_END`
 pub fn init() {
     let frame_allocator: UPSafeCell<StackFrameAllocator> =
         unsafe { UPSafeCell::new(StackFrameAllocator::new()) };
-    log::debug!(
-        "init FRAME_ALLOCATOR at {:#p}",
-        core::ptr::addr_of!(FRAME_ALLOCATOR)
-    );
+    use super::cfg::MEMORY_END;
     use crate::label::ekernel;
-    use config::memory::MEMORY_END;
     frame_allocator.exclusive_access().init(
         PhysAddr::from(ekernel as usize).ceil(),
         PhysAddr::from(MEMORY_END).floor(),
     );
     unsafe {
-        core::ptr::write_volatile(core::ptr::addr_of!(FRAME_ALLOCATOR) as _, frame_allocator);
+        FRAME_ALLOCATOR = Some(frame_allocator);
     };
 }
 
 /// allocate a frame
 pub fn frame_alloc() -> Option<FrameTracker> {
-    unsafe { FRAME_ALLOCATOR.exclusive_access() }
+    unsafe { FRAME_ALLOCATOR.as_ref() }
+        .unwrap()
+        .exclusive_access()
         .alloc()
         .map(FrameTracker::new)
 }
 
 /// deallocate a frame
-fn frame_dealloc(ppn: PhysPageNum) {
-    unsafe { FRAME_ALLOCATOR.exclusive_access() }.dealloc(ppn);
+pub fn frame_dealloc(ppn: PhysPageNum) {
+    unsafe { FRAME_ALLOCATOR.as_ref() }
+        .unwrap()
+        .exclusive_access()
+        .dealloc(ppn);
 }
 
 #[allow(unused)]

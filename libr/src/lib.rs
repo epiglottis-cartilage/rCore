@@ -7,6 +7,7 @@ pub mod console;
 mod lang_items;
 mod syscall;
 
+pub use config::fs::OpenFlag;
 use linked_list_allocator::LockedHeap;
 use syscall::*;
 
@@ -21,6 +22,9 @@ static HEAP: LockedHeap = LockedHeap::empty();
 pub fn handle_alloc_error(layout: core::alloc::Layout) -> ! {
     panic!("Heap allocation error, layout = {:?}", layout);
 }
+unsafe extern "Rust" {
+    safe fn main() -> i32;
+}
 
 #[unsafe(no_mangle)]
 #[unsafe(link_section = ".text.entry")]
@@ -32,12 +36,12 @@ pub extern "C" fn _start() -> ! {
     exit(main());
 }
 
-#[linkage = "weak"]
-#[unsafe(no_mangle)]
-fn main() -> i32 {
-    panic!("Cannot find main!");
+pub fn open(name: &str, flags: OpenFlag) -> isize {
+    sys_open(name, flags)
 }
-
+pub fn close(fd: usize) -> isize {
+    sys_close(fd)
+}
 pub fn read(fd: usize, buf: &mut [u8]) -> isize {
     sys_read(fd, buf)
 }
