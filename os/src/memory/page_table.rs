@@ -203,7 +203,7 @@ impl UserBuffer {
         self.0.iter_mut().flat_map(|buf| buf.iter_mut())
     }
     /// Iterator over the buffer
-    pub fn into_bytes(self) -> impl IntoIterator<Item = &'static mut u8> {
+    pub fn into_bytes(self) -> impl Iterator<Item = &'static mut u8> {
         self.0.into_iter().flat_map(|buf| buf.into_iter())
     }
 }

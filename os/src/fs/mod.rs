@@ -1,5 +1,6 @@
 //! File system in os
 mod inode;
+mod pipe;
 mod stdio;
 use crate::memory::UserBuffer;
 pub use config::fs as cfg;
@@ -16,7 +17,8 @@ pub trait File: Send + Sync {
 }
 
 pub use cfg::OpenFlag;
-pub use inode::{OSInode, list_apps, open_file};
+pub use inode::{list_apps, open_file};
+pub use pipe::make_pipe;
 pub use stdio::{Stderr, Stdin, Stdout};
 
 #[deny(dead_code)]
