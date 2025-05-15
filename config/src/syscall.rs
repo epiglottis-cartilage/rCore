@@ -3,6 +3,7 @@
 pub enum SyscallID {
     Open = 56,
     Close = 57,
+    Pipe = 59,
     Read = 63,
     Write = 64,
     Exit = 93,
@@ -30,3 +31,25 @@ pub enum SyscallID {
 //         }
 //     }
 // }
+
+#[test]
+fn test_argument() {
+    let argv: &[&str] = &["hello", "world", "rCore", "🥵🥵🥵🥵"];
+    let argv_packed: Argument<&str> = argv.into();
+    let os_recv =
+        unsafe { *(&argv_packed as *const Argument<&str> as *const Argument<Argument<u8>>) };
+
+    for (recv, send) in
+        unsafe { core::slice::from_raw_parts(os_recv.user_ptr as *const Argument<u8>, os_recv.len) }
+            .iter()
+            .map(|x| unsafe {
+                core::str::from_utf8_unchecked(core::slice::from_raw_parts(
+                    x.user_ptr as *const u8,
+                    x.len,
+                ))
+            })
+            .zip(argv.iter())
+    {
+        assert_eq!(recv, *send);
+    }
+}

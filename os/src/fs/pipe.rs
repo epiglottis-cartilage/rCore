@@ -3,7 +3,6 @@ use super::cfg;
 use crate::memory::UserBuffer;
 use crate::sync::UPSafeCell;
 use alloc::sync::{Arc, Weak};
-use config::fs::PIPE_BUFFER_SIZE;
 
 use crate::task;
 pub struct Pipe {
@@ -27,18 +26,10 @@ impl Pipe {
         }
     }
 }
-
-#[derive(Copy, Clone, PartialEq)]
-enum RingBufferStatus {
-    Full,
-    Empty,
-    Normal,
-}
 struct PipeRingBuffer {
     arr: [u8; cfg::PIPE_BUFFER_SIZE],
     head: usize,
     length: usize,
-    status: RingBufferStatus,
     write_end: Option<Weak<Pipe>>,
 }
 
@@ -48,7 +39,6 @@ impl PipeRingBuffer {
             arr: [0; cfg::PIPE_BUFFER_SIZE],
             head: 0,
             length: 0,
-            status: RingBufferStatus::Normal,
             write_end: None,
         }
     }
@@ -58,24 +48,18 @@ impl PipeRingBuffer {
 
     pub fn write_byte(&mut self, byte: u8) {
         assert!(self.length < cfg::PIPE_BUFFER_SIZE);
-        self.status = RingBufferStatus::Normal;
         let tail = (self.head + self.length) % cfg::PIPE_BUFFER_SIZE;
         self.arr[tail] = byte;
         self.length += 1;
         if self.length >= cfg::PIPE_BUFFER_SIZE {
             self.length = cfg::PIPE_BUFFER_SIZE;
-            self.status = RingBufferStatus::Full;
         }
     }
     pub fn read_byte(&mut self) -> u8 {
         assert!(self.length > 0);
-        self.status = RingBufferStatus::Normal;
         let byte = self.arr[self.head];
         self.head = (self.head + 1) % cfg::PIPE_BUFFER_SIZE;
         self.length -= 1;
-        if self.length == 0 {
-            self.status = RingBufferStatus::Empty;
-        }
         byte
     }
 

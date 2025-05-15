@@ -37,10 +37,18 @@ pub extern "C" fn _start() -> ! {
 }
 
 pub fn open(name: &str, flags: OpenFlag) -> isize {
-    sys_open(name, flags)
+    sys_open(&name, flags)
 }
 pub fn close(fd: usize) -> isize {
     sys_close(fd)
+}
+pub fn pipe() -> Option<(usize, usize)> {
+    let mut pipefd = (0, 0);
+    match sys_pipe(&mut pipefd.0, &mut pipefd.1) {
+        0 => Some(pipefd),
+        -1 => None,
+        _ => panic!("unexpected return value: {}", -1),
+    }
 }
 pub fn read(fd: usize, buf: &mut [u8]) -> isize {
     sys_read(fd, buf)
@@ -51,13 +59,13 @@ pub fn write(fd: usize, buf: &[u8]) -> isize {
 pub fn exit(exit_code: i32) -> ! {
     sys_exit(exit_code);
 }
-pub fn r#yield() -> isize {
-    sys_yield()
+pub fn r#yield() {
+    sys_yield();
 }
-pub fn get_time() -> isize {
+pub fn get_time() -> usize {
     sys_get_time()
 }
-pub fn getpid() -> isize {
+pub fn getpid() -> usize {
     sys_get_pid()
 }
 pub fn sbrk(delta: isize) -> isize {
@@ -66,8 +74,8 @@ pub fn sbrk(delta: isize) -> isize {
 pub fn fork() -> isize {
     sys_fork()
 }
-pub fn exec(path: &str) -> isize {
-    sys_exec(path)
+pub fn exec(path: &str, argv: &[&str]) -> isize {
+    sys_exec(&path, &argv)
 }
 pub fn wait(exit_code: &mut i32) -> isize {
     loop {
@@ -93,7 +101,7 @@ pub fn waitpid(pid: usize, exit_code: &mut i32) -> isize {
 }
 pub fn sleep(period_ms: usize) {
     let start = get_time();
-    while get_time() < start + period_ms as isize {
+    while get_time() < start + period_ms {
         r#yield();
     }
 }

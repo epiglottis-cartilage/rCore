@@ -164,28 +164,110 @@ pub fn translate_sized(
     resutl
 }
 
-/// translate a pointer to a mutable u8 Vec end with `\0` through page table to a `String`
-pub fn translate_str(token: usize, ptr: *const u8) -> Option<String> {
+pub fn translate_slice<T>(token: usize, ptr: *const *const [T]) -> (Vec<&'static mut [T]>, usize) {
+    // assert
+    let mut raw_ptr = *translate_ref(token, ptr as *const *const T);
+    let mut len = *translate_ref(token, unsafe { (ptr as *const usize).add(1) });
+
     let page_table = PageTable::from_ppn(token.into());
-    let res = (ptr as usize..)
-        .map(|ptr| ptr.into())
-        .map(|va| {
-            let addr = *page_table.translate_va(va).unwrap().as_mut();
-            addr
-        })
-        .take_while(|x: &u8| *x != b'\0')
-        .collect::<Vec<_>>();
-    String::from_utf8(res).ok()
+    let mut result = Vec::new();
+    loop {
+        let part: &'static mut [u8] = page_table
+            .translate_va((raw_ptr as usize).into())
+            .unwrap()
+            .to_end();
+        assert_eq!(part.len() % size_of::<T>(), 0);
+
+        let part: &'static mut [T] = unsafe {
+            core::slice::from_raw_parts_mut(part.as_ptr() as _, part.len() / size_of::<T>())
+        };
+        let part_len = part.len();
+        if len <= part_len {
+            result.push(&mut part[..len]);
+            break;
+        } else {
+            result.push(part);
+            len -= part_len;
+            raw_ptr = (raw_ptr as usize + part_len) as _;
+        }
+    }
+    (result, len)
+}
+
+pub fn translate_necked_slice<T: 'static>(
+    token: usize,
+    ptr: *const *const [*const [T]],
+) -> impl DoubleEndedIterator<Item = *const *const [T]> {
+    let raw_ptr = translate_ref(token, ptr as *const *const [T]);
+    let len = *translate_ref(token, unsafe { (ptr as *const usize).add(1) });
+
+    unsafe {
+        core::slice::from_raw_parts(raw_ptr as *const _, len * 2)
+            .iter()
+            .map(|ptr: &*const [T]| ptr as *const _)
+            .step_by(2)
+    }
+}
+
+pub fn translate_str_slice(token: usize, ptr: *const *const [*const str]) -> Option<Vec<String>> {
+    translate_necked_slice(token, ptr as *const *const [*const [u8]])
+        .into_iter()
+        .map(|ptr| translate_str(token, ptr as _))
+        .try_collect()
+}
+
+/// translate a pointer to a mutable u8 Vec end with `\0` through page table to a `String`
+pub fn translate_str(token: usize, ptr: *const *const str) -> Option<String> {
+    let (strs, len) = translate_slice(token, ptr as *const *const [u8]);
+    let bytes = strs.iter().fold(Vec::with_capacity(len), |mut acc, str| {
+        acc.extend_from_slice(*str);
+        acc
+    });
+    String::from_utf8(bytes).ok()
 }
 
 /// translate a generic through page table and return a mutable reference
-pub fn translated_ref_mut<T>(token: usize, ptr: *mut T) -> &'static mut T {
+pub fn translate_ref_mut<T>(token: usize, ptr: *mut T) -> &'static mut T {
     PageTable::from_ppn(token.into())
         .translate_va((ptr as usize).into())
         .unwrap()
         .as_mut()
 }
 
+/// translate a generic through page table and return a reference
+pub fn translate_ref<T>(token: usize, ptr: *const T) -> &'static T {
+    PageTable::from_ppn(token.into())
+        .translate_va((ptr as usize).into())
+        .unwrap()
+        .as_mut()
+}
+
+/// translate a generic through page table and return a reference
+pub fn translate_to<T>(token: usize, src: *const T, dst: &mut T) {
+    let page_table = PageTable::from_ppn(PhysPageNum(token));
+    let mut len = size_of::<T>();
+    let mut src = src as *const u8;
+    let mut dst = dst as *const _ as *mut u8;
+    loop {
+        let part = page_table
+            .translate_va((src as usize).into())
+            .unwrap()
+            .to_end();
+        if len <= part.len() {
+            unsafe {
+                core::ptr::copy(src, dst, len);
+            }
+            break;
+        } else {
+            unsafe {
+                core::ptr::copy(src, dst, part.len());
+                len -= part.len();
+                src = src.add(part.len());
+                dst = dst.add(part.len());
+            }
+        }
+    }
+}
 /// Array of u8 slice that user communicate with os
 pub struct UserBuffer(pub Vec<&'static mut [u8]>);
 
