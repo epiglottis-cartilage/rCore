@@ -14,8 +14,8 @@ fn syscall(id: SyscallID, args: [usize; 3]) -> isize {
     }
     ret
 }
-pub(crate) fn sys_open(path: &str, flag: OpenFlag) -> isize {
-    syscall(SyscallID::Open, [path.as_ptr() as usize, flag.bits(), 0])
+pub(crate) fn sys_open(path: &&str, flag: OpenFlag) -> isize {
+    syscall(SyscallID::Open, [path as *const _ as _, flag.bits(), 0])
 }
 pub(crate) fn sys_close(fd: usize) -> isize {
     syscall(SyscallID::Close, [fd, 0, 0])
@@ -23,27 +23,24 @@ pub(crate) fn sys_close(fd: usize) -> isize {
 pub(crate) fn sys_read(fd: usize, buffer: &mut [u8]) -> isize {
     syscall(
         SyscallID::Read,
-        [fd, buffer.as_mut_ptr() as usize, buffer.len()],
+        [fd, buffer.as_mut_ptr() as _, buffer.len()],
     )
 }
 pub(crate) fn sys_write(fd: usize, buffer: &[u8]) -> isize {
-    syscall(
-        SyscallID::Write,
-        [fd, buffer.as_ptr() as usize, buffer.len()],
-    )
+    syscall(SyscallID::Write, [fd, buffer.as_ptr() as _, buffer.len()])
 }
 pub(crate) fn sys_exit(exit_code: i32) -> ! {
-    syscall(SyscallID::Exit, [exit_code as usize, 0, 0]);
+    syscall(SyscallID::Exit, [exit_code as _, 0, 0]);
     panic!("sys_exit never returns!");
 }
 pub(crate) fn sys_yield() -> isize {
     syscall(SyscallID::Yield, [0, 0, 0])
 }
-pub(crate) fn sys_get_time() -> isize {
-    syscall(SyscallID::GetTime, [0, 0, 0])
+pub(crate) fn sys_get_time() -> usize {
+    syscall(SyscallID::GetTime, [0, 0, 0]).cast_unsigned()
 }
-pub fn sys_get_pid() -> isize {
-    syscall(SyscallID::GetPid, [0, 0, 0])
+pub fn sys_get_pid() -> usize {
+    syscall(SyscallID::GetPid, [0, 0, 0]).cast_unsigned()
 }
 
 pub(crate) fn sys_sbrk(delta: isize) -> isize {
@@ -52,9 +49,12 @@ pub(crate) fn sys_sbrk(delta: isize) -> isize {
 pub(crate) fn sys_fork() -> isize {
     syscall(SyscallID::Fork, [0, 0, 0])
 }
-pub(crate) fn sys_exec(path: &str) -> isize {
-    syscall(SyscallID::Exec, [path.as_ptr() as usize, 0, 0])
+pub(crate) fn sys_exec(path: &&str, argv: &&[&str]) -> isize {
+    syscall(
+        SyscallID::Exec,
+        [path as *const _ as _, argv as *const _ as _, 0],
+    )
 }
 pub(crate) fn sys_waitpid(pid: isize, exit_code: *mut i32) -> isize {
-    syscall(SyscallID::WaitPid, [pid as usize, exit_code as usize, 0])
+    syscall(SyscallID::WaitPid, [pid as _, exit_code as _, 0])
 }

@@ -7,7 +7,7 @@ use libr::{OpenFlag, close, open, read};
 
 #[unsafe(no_mangle)]
 fn main() -> i32 {
-    let fd = open("filea\0", OpenFlag::RDONLY);
+    let fd = open("filea", OpenFlag::RDONLY);
     if fd == -1 {
         panic!("Error occured when opening file");
     }

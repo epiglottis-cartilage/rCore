@@ -49,12 +49,20 @@ pub fn sys_fork() -> isize {
     new_pid as isize
 }
 
-pub fn sys_exec(path: *const u8) -> isize {
+pub fn sys_exec(path: *const *const str, args: *const *const [*const str]) -> isize {
     let token = task::current_user_token();
-    let path = match memory::translate_str(token, path) {
-        Some(path) => path,
-        None => return -1,
+    let path = if let Some(path) = memory::translate_str(token, path) {
+        path
+    } else {
+        return -1;
     };
+
+    let args = if let Some(args) = memory::translate_str_slice(token, args) {
+        args
+    } else {
+        return -1;
+    };
+
     if let Some(app_inode) = fs::open_file(path.as_str(), crate::fs::OpenFlag::RDONLY) {
         let all_data = app_inode.read_all();
         let task = current_task().unwrap();
@@ -94,7 +102,7 @@ pub fn sys_waitpid(pid: isize, exit_code_ptr: *mut i32) -> isize {
         // ++++ temporarily access child TCB exclusively
         let exit_code = child.inner_exclusive_access().exit_code;
         // ++++ release child PCB
-        *memory::translated_ref_mut(inner.memory_set.token(), exit_code_ptr) = exit_code;
+        *memory::translate_ref_mut(inner.memory_set.token(), exit_code_ptr) = exit_code;
         found_pid as isize
     } else {
         -2
