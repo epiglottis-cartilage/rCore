@@ -5,6 +5,7 @@
 #![feature(new_range_api)]
 #![feature(fn_align)]
 #![allow(static_mut_refs)]
+#![feature(iterator_try_collect)]
 pub mod lang_items;
 
 mod sbi;

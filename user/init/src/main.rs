@@ -9,7 +9,7 @@ use libr::{exec, fork, wait, r#yield};
 fn main() -> i32 {
     println!("[initproc] Init process started");
     if fork() == 0 {
-        exec("shell\0");
+        exec("shell", &[]);
     } else {
         loop {
             let mut exit_code: i32 = 0;

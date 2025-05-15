@@ -8,7 +8,7 @@ use libr::{OpenFlag, close, open, read, write};
 #[unsafe(no_mangle)]
 fn main() -> i32 {
     let test_str = "I'm going write some 💩 in your disk🥵";
-    let filea = "filea\0";
+    let filea = "filea";
     let fd = open(filea, OpenFlag::CREATE | OpenFlag::WRONLY);
     assert!(fd > 0);
     let fd = fd as usize;

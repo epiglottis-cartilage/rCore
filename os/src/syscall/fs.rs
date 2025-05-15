@@ -53,10 +53,14 @@ pub fn sys_read(fd: usize, buf: *const u8, len: usize) -> isize {
     }
 }
 
-pub fn sys_open(path: *const u8, flags: usize) -> isize {
+pub fn sys_open(path: *const *const str, flags: usize) -> isize {
     let task = task::current_task().unwrap();
     let token = task::current_user_token();
-    let path = memory::translate_str(token, path).unwrap();
+    let path = if let Some(path) = memory::translate_str(token, path) {
+        path
+    } else {
+        return -1;
+    };
     if let Some(inode) = fs::open_file(path.as_str(), fs::OpenFlag::from_bits(flags).unwrap()) {
         let mut inner = task.inner_exclusive_access();
         let fd = inner.alloc_fd();
