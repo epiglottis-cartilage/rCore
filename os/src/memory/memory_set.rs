@@ -2,7 +2,7 @@
 
 use super::cfg::{MEMORY_END, MMIO, PAGE_SIZE, TRAMPOLINE, TRAP_CONTEXT, USER_STACK_SIZE};
 use super::{FrameTracker, frame_alloc};
-use super::{PageTable, PageTableEntry, PageTableEntryFlags};
+use super::{PageTable, PageTableDirect, PageTableEntry, PageTableEntryFlags};
 use super::{PhysAddr, PhysPageNum, VirtAddr, VirtPageNum};
 use crate::label::*;
 use crate::sync::UPSafeCell;
@@ -24,7 +24,7 @@ pub fn init() {
     };
 }
 ///Get kernelspace root ppn
-pub fn kernel_token() -> usize {
+pub fn kernel_token() -> PageTableDirect {
     unsafe { KERNEL_SPACE.as_ref() }
         .unwrap()
         .exclusive_access()
@@ -45,7 +45,7 @@ impl MemorySet {
         }
     }
     ///Get pagetable `root_ppn`
-    pub fn token(&self) -> usize {
+    pub fn token(&self) -> PageTableDirect {
         self.page_table.token()
     }
     /// Assume that no conflicts.
@@ -256,9 +256,7 @@ impl MemorySet {
     ///Refresh TLB with `sfence.vma`
     pub fn activate(&self) {
         unsafe {
-            riscv::register::satp::write(riscv::register::satp::Satp::from_bits(
-                self.page_table.token(),
-            ));
+            riscv::register::satp::write(self.page_table.token().into());
             asm!("sfence.vma");
         }
     }
@@ -291,13 +289,6 @@ impl MapArea {
     ) -> Self {
         let start_vpn: VirtPageNum = start_va.floor();
         let end_vpn: VirtPageNum = end_va.ceil();
-        log::trace!(
-            "mapping [{:X?}, {:X?}) -> [{:X?}, {:X?})",
-            start_va,
-            end_va,
-            start_vpn,
-            end_vpn
-        );
         Self {
             vpn_range: (start_vpn..end_vpn).into(),
             data_frames: BTreeMap::new(),

@@ -16,7 +16,7 @@ pub use address::{PhysAddr, PhysPageNum, VirtAddr, VirtPageNum};
 pub use frame_allocator::{FrameTracker, frame_alloc, frame_dealloc};
 pub use memory_set::remap_test;
 pub use memory_set::{KERNEL_SPACE, MapPermission, MemorySet, kernel_token};
-pub use page_table::{PageTable, PageTableEntryFlags};
+pub use page_table::{PageTable, PageTableDirect, PageTableEntryFlags};
 pub use page_table::{
     PageTableEntry, UserBuffer, translate_necked_slice, translate_ref, translate_ref_mut,
     translate_sized, translate_slice, translate_str, translate_str_slice,

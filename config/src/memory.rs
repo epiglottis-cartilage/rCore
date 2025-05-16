@@ -1,4 +1,4 @@
-use riscv::register::satp::Mode;
+pub use riscv::register::satp::Mode;
 pub const VA_MODE: Mode = Mode::Sv39;
 /// physical address
 pub const PA_WIDTH: usize = 56;

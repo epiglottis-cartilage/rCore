@@ -2,6 +2,7 @@
 use super::__switch;
 use super::{TaskContext, TaskControlBlock};
 use super::{TaskStatus, fetch_task};
+use crate::memory::PageTableDirect;
 use crate::sync::UPSafeCell;
 use crate::trap::TrapContext;
 use alloc::sync::Arc;
@@ -86,7 +87,7 @@ pub fn current_task() -> Option<Arc<TaskControlBlock>> {
         .current()
 }
 ///Get token of the address space of current task
-pub fn current_user_token() -> usize {
+pub fn current_user_token() -> PageTableDirect {
     let task = current_task().unwrap();
     let token = task.inner_exclusive_access().get_user_token();
     token
