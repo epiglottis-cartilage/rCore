@@ -221,27 +221,57 @@ pub fn translate_str_slice(
 }
 
 /// translate a pointer to a mutable u8 Vec end with `\0` through page table to a `String`
-pub fn translate_str(token: usize, ptr: *const u8) -> Option<String> {
-    let page_table = PageTable::from_ppn(token.into());
-    let res = (ptr as usize..)
-        .map(|ptr| ptr.into())
-        .map(|va| {
-            let addr = *page_table.translate_va(va).unwrap().as_mut();
-            addr
-        })
-        .take_while(|x: &u8| *x != b'\0')
-        .collect::<Vec<_>>();
-    String::from_utf8(res).ok()
+pub fn translate_str(token: PageTableDirect, ptr: *const *const str) -> Option<String> {
+    let (strs, len) = translate_slice(token, ptr as *const *const [u8]);
+    let bytes = strs.iter().fold(Vec::with_capacity(len), |mut acc, str| {
+        acc.extend_from_slice(*str);
+        acc
+    });
+    String::from_utf8(bytes).ok()
 }
 
 /// translate a generic through page table and return a mutable reference
-pub fn translated_ref_mut<T>(token: usize, ptr: *mut T) -> &'static mut T {
-    PageTable::from_ppn(token.into())
+pub fn translate_ref_mut<T>(token: PageTableDirect, ptr: *mut T) -> &'static mut T {
+    PageTable::from(token)
         .translate_va((ptr as usize).into())
         .unwrap()
         .as_mut()
 }
 
+/// translate a generic through page table and return a reference
+pub fn translate_ref<T>(token: PageTableDirect, ptr: *const T) -> &'static T {
+    PageTable::from(token)
+        .translate_va((ptr as usize).into())
+        .unwrap()
+        .as_mut()
+}
+
+/// translate a generic through page table and return a reference
+pub fn translate_to<T>(token: PageTableDirect, src: *const T, dst: &mut T) {
+    let page_table = PageTable::from(token);
+    let mut len = size_of::<T>();
+    let mut src = src as *const u8;
+    let mut dst = dst as *const _ as *mut u8;
+    loop {
+        let part = page_table
+            .translate_va((src as usize).into())
+            .unwrap()
+            .to_end();
+        if len <= part.len() {
+            unsafe {
+                core::ptr::copy(src, dst, len);
+            }
+            break;
+        } else {
+            unsafe {
+                core::ptr::copy(src, dst, part.len());
+                len -= part.len();
+                src = src.add(part.len());
+                dst = dst.add(part.len());
+            }
+        }
+    }
+}
 /// Array of u8 slice that user communicate with os
 pub struct UserBuffer(pub Vec<&'static mut [u8]>);
 
