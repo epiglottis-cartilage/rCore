@@ -4,7 +4,7 @@ use super::TaskContext;
 use super::cfg::TRAP_CONTEXT;
 use super::{KernelStack, PidHandle, pid_alloc};
 use crate::fs::{Stderr, Stdin, Stdout};
-use crate::memory::{KERNEL_SPACE, MemorySet, PhysPageNum, VirtAddr};
+use crate::memory::{KERNEL_SPACE, MemorySet, PageTableDirect, PhysPageNum, VirtAddr};
 use crate::sync::UPSafeCell;
 use crate::trap::{TrapContext, trap_handler};
 use alloc::sync::{Arc, Weak};
@@ -44,7 +44,7 @@ impl TaskControlBlockInner {
     pub fn get_trap_cx(&self) -> &'static mut TrapContext {
         self.trap_cx_ppn.as_mut()
     }
-    pub fn get_user_token(&self) -> usize {
+    pub fn get_user_token(&self) -> PageTableDirect {
         self.memory_set.token()
     }
     fn get_status(&self) -> TaskStatus {

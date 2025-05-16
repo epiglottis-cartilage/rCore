@@ -5,6 +5,8 @@ use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 
+pub type PageTableDirect = riscv::register::satp::Satp;
+
 bitflags::bitflags! {
     /// page table entry flags
     pub struct PageTableEntryFlags: u8 {
@@ -57,29 +59,28 @@ impl PageTableEntry {
 
 /// page table structure
 pub struct PageTable {
-    root_ppn: PhysPageNum,
+    root_ppn: PageTableDirect,
     frames: Vec<FrameTracker>,
 }
-
 /// Assume that it won't oom when creating/mapping.
 impl PageTable {
     pub fn new() -> Self {
         let frame = frame_alloc().unwrap();
         PageTable {
-            root_ppn: frame.ppn,
+            root_ppn: frame.ppn.into(),
             frames: vec![frame],
         }
     }
     /// Temporarily used to get arguments from user space.
-    pub fn from_ppn(ppn: PhysPageNum) -> Self {
+    pub fn from(root: PageTableDirect) -> Self {
         Self {
-            root_ppn: ppn,
+            root_ppn: root.into(),
             frames: Vec::new(),
         }
     }
     fn find_or_insert(&mut self, vpn: VirtPageNum) -> &mut PageTableEntry {
         let idxs = vpn.indexes();
-        let mut ppn = self.root_ppn;
+        let mut ppn: PhysPageNum = self.root_ppn.into();
         for (i, idx) in idxs.iter().enumerate() {
             let pte = &mut ppn.as_page_table()[*idx];
             if i == 2 {
@@ -96,7 +97,7 @@ impl PageTable {
     }
     fn find(&self, vpn: VirtPageNum) -> Option<&mut PageTableEntry> {
         let idxs = vpn.indexes();
-        let mut ppn = self.root_ppn;
+        let mut ppn: PhysPageNum = self.root_ppn.into();
         let mut result: Option<&mut PageTableEntry> = None;
         for (i, idx) in idxs.iter().enumerate() {
             let pte = &mut ppn.as_page_table()[*idx];
@@ -111,13 +112,11 @@ impl PageTable {
         }
         result
     }
-    #[allow(unused)]
     pub fn map(&mut self, vpn: VirtPageNum, ppn: PhysPageNum, flags: PageTableEntryFlags) {
         let pte = self.find_or_insert(vpn);
         assert!(!pte.valid(), "vpn {:?} is mapped before mapping", vpn);
         *pte = PageTableEntry::new(ppn, flags | PageTableEntryFlags::V);
     }
-    #[allow(unused)]
     pub fn unmap(&mut self, vpn: VirtPageNum) {
         let pte = self.find(vpn).unwrap();
         assert!(pte.valid(), "vpn {:?} is invalid before unmapping", vpn);
@@ -132,19 +131,18 @@ impl PageTable {
             (aligned_pa.0 | va.page_offset()).into()
         })
     }
-    pub fn token(&self) -> usize {
-        let stap: riscv::register::satp::Satp = self.root_ppn.into();
-        stap.bits()
+    pub fn token(&self) -> PageTableDirect {
+        self.root_ppn
     }
 }
 
 /// translate a pointer to a mutable u8 Vec through page table
 pub fn translate_sized(
-    token: PhysPageNum,
+    token: PageTableDirect,
     mut ptr: *const u8,
     mut len: usize,
 ) -> Vec<&'static mut [u8]> {
-    let page_table = PageTable::from_ppn(token);
+    let page_table = PageTable::from(token);
     let mut resutl = Vec::new();
     loop {
         let part = page_table
@@ -164,12 +162,15 @@ pub fn translate_sized(
     resutl
 }
 
-pub fn translate_slice<T>(token: usize, ptr: *const *const [T]) -> (Vec<&'static mut [T]>, usize) {
+pub fn translate_slice<T>(
+    token: PageTableDirect,
+    ptr: *const *const [T],
+) -> (Vec<&'static mut [T]>, usize) {
     // assert
     let mut raw_ptr = *translate_ref(token, ptr as *const *const T);
     let mut len = *translate_ref(token, unsafe { (ptr as *const usize).add(1) });
 
-    let page_table = PageTable::from_ppn(token.into());
+    let page_table = PageTable::from(token);
     let mut result = Vec::new();
     loop {
         let part: &'static mut [u8] = page_table
@@ -195,7 +196,7 @@ pub fn translate_slice<T>(token: usize, ptr: *const *const [T]) -> (Vec<&'static
 }
 
 pub fn translate_necked_slice<T: 'static>(
-    token: usize,
+    token: PageTableDirect,
     ptr: *const *const [*const [T]],
 ) -> impl DoubleEndedIterator<Item = *const *const [T]> {
     let raw_ptr = translate_ref(token, ptr as *const *const [T]);
@@ -209,7 +210,10 @@ pub fn translate_necked_slice<T: 'static>(
     }
 }
 
-pub fn translate_str_slice(token: usize, ptr: *const *const [*const str]) -> Option<Vec<String>> {
+pub fn translate_str_slice(
+    token: PageTableDirect,
+    ptr: *const *const [*const str],
+) -> Option<Vec<String>> {
     translate_necked_slice(token, ptr as *const *const [*const [u8]])
         .into_iter()
         .map(|ptr| translate_str(token, ptr as _))
@@ -217,7 +221,7 @@ pub fn translate_str_slice(token: usize, ptr: *const *const [*const str]) -> Opt
 }
 
 /// translate a pointer to a mutable u8 Vec end with `\0` through page table to a `String`
-pub fn translate_str(token: usize, ptr: *const *const str) -> Option<String> {
+pub fn translate_str(token: PageTableDirect, ptr: *const *const str) -> Option<String> {
     let (strs, len) = translate_slice(token, ptr as *const *const [u8]);
     let bytes = strs.iter().fold(Vec::with_capacity(len), |mut acc, str| {
         acc.extend_from_slice(*str);
@@ -227,24 +231,24 @@ pub fn translate_str(token: usize, ptr: *const *const str) -> Option<String> {
 }
 
 /// translate a generic through page table and return a mutable reference
-pub fn translate_ref_mut<T>(token: usize, ptr: *mut T) -> &'static mut T {
-    PageTable::from_ppn(token.into())
+pub fn translate_ref_mut<T>(token: PageTableDirect, ptr: *mut T) -> &'static mut T {
+    PageTable::from(token)
         .translate_va((ptr as usize).into())
         .unwrap()
         .as_mut()
 }
 
 /// translate a generic through page table and return a reference
-pub fn translate_ref<T>(token: usize, ptr: *const T) -> &'static T {
-    PageTable::from_ppn(token.into())
+pub fn translate_ref<T>(token: PageTableDirect, ptr: *const T) -> &'static T {
+    PageTable::from(token)
         .translate_va((ptr as usize).into())
         .unwrap()
         .as_mut()
 }
 
 /// translate a generic through page table and return a reference
-pub fn translate_to<T>(token: usize, src: *const T, dst: &mut T) {
-    let page_table = PageTable::from_ppn(PhysPageNum(token));
+pub fn translate_to<T>(token: PageTableDirect, src: *const T, dst: &mut T) {
+    let page_table = PageTable::from(token);
     let mut len = size_of::<T>();
     let mut src = src as *const u8;
     let mut dst = dst as *const _ as *mut u8;

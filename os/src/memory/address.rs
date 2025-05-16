@@ -65,6 +65,12 @@ impl Into<riscv::register::satp::Satp> for PhysPageNum {
         res
     }
 }
+impl From<riscv::register::satp::Satp> for PhysPageNum {
+    fn from(satp: riscv::register::satp::Satp) -> Self {
+        assert_eq!(satp.mode(), VA_MODE);
+        Self(satp.ppn())
+    }
+}
 impl From<usize> for VirtAddr {
     fn from(v: usize) -> Self {
         Self(v & ((1 << VA_WIDTH) - 1))

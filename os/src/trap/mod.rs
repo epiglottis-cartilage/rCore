@@ -14,9 +14,11 @@
 
 mod context;
 
+use crate::memory::PageTableDirect;
 use crate::syscall::syscall;
 use crate::task;
-use config::memory::{TRAMPOLINE, TRAP_CONTEXT};
+
+use config::memory as cfg;
 use core::arch::{asm, global_asm};
 use riscv::{
     interrupt::{Exception, Interrupt},
@@ -52,7 +54,7 @@ fn set_kernel_trap_entry() {
 fn set_user_trap_entry() {
     unsafe {
         let mut trap = stvec::Stvec::from_bits(0);
-        trap.set_address(TRAMPOLINE);
+        trap.set_address(cfg::TRAMPOLINE);
         trap.set_trap_mode(stvec::TrapMode::Direct);
         stvec::write(trap);
     }
@@ -151,16 +153,16 @@ unsafe extern "C" {
 /// finally, jump to new addr of __restore asm function
 pub fn trap_return() -> ! {
     set_user_trap_entry();
-    let trap_cx_ptr = TRAP_CONTEXT;
-    let user_satp = task::current_user_token();
-    let restore_va = __restore as usize - __alltraps as usize + TRAMPOLINE;
+    let trap_cx_ptr = cfg::TRAP_CONTEXT;
+    let user_satp: riscv::register::satp::Satp = task::current_user_token().into();
+    let restore_va = __restore as usize - __alltraps as usize + cfg::TRAMPOLINE;
     unsafe {
         asm!(
             "fence.i",
-            "jr {restore_va}",             // jump to new addr of __restore asm function
+            "jr {restore_va}",          // jump to new addr of __restore asm function
             restore_va = in(reg) restore_va,
             in("a0") trap_cx_ptr,      // a0 = virt addr of Trap Context
-            in("a1") user_satp,        // a1 = phy addr of usr page table
+            in("a1") user_satp.bits(),        // a1 = phy addr of usr page table
             options(noreturn)
         );
     }
