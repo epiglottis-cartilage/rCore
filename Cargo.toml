@@ -29,6 +29,8 @@ members = [
     "user/cat",
     "user/args",
     "user/echo",
+    "user/pipetest",
+    "user/pipe_large_test",
 ]
 resolver = "3"
 

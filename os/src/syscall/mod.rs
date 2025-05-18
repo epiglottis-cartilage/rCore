@@ -22,6 +22,7 @@ use process::*;
 /// handle syscall exception with `syscall_id` and other arguments
 pub fn syscall(syscall_id: SyscallID, args: [usize; 3]) -> isize {
     match syscall_id {
+        SyscallID::Dup => sys_dup(args[0]),
         SyscallID::Write => sys_write(args[0], args[1] as _, args[2]),
         SyscallID::Exit => sys_exit(args[0] as i32),
         SyscallID::Yield => sys_yield(),

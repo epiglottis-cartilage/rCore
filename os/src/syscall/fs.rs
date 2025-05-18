@@ -6,6 +6,20 @@ use crate::fs;
 use crate::memory;
 use crate::task;
 
+pub fn sys_dup(fd: usize) -> isize {
+    let task = task::current_task().unwrap();
+    let mut inner = task.inner_exclusive_access();
+    let src;
+    if let Some(fd) = inner.fd_table.get(fd).map_or(None, |fd| fd.as_ref()) {
+        src = fd.clone();
+    } else {
+        return -1;
+    }
+    let new_fd = inner.alloc_fd();
+    inner.fd_table[new_fd] = Some(src);
+    new_fd as isize
+}
+
 /// write buf of length `len`  to a file with `fd`
 pub fn sys_write(fd: usize, buf: *const u8, len: usize) -> isize {
     let token = task::current_user_token();
