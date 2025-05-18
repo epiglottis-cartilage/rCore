@@ -1,6 +1,7 @@
 #[repr(usize)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SyscallID {
+    Dup = 24,
     Open = 56,
     Close = 57,
     Pipe = 59,

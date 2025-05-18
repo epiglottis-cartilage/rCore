@@ -2,13 +2,7 @@ pub use riscv::register::satp::Mode;
 pub const VA_MODE: Mode = Mode::Sv39;
 /// physical address
 pub const PA_WIDTH: usize = 56;
-pub const VA_WIDTH: usize = match VA_MODE {
-    Mode::Bare => panic!("Bare mode is not supported in VirtAddr"),
-    Mode::Sv39 => 39,
-    Mode::Sv48 => 48,
-    Mode::Sv57 => 57,
-    Mode::Sv64 => 64,
-};
+pub const VA_WIDTH: usize = 39;
 
 pub const PPN_WIDTH: usize = PA_WIDTH - PAGE_SIZE_BITS;
 pub const VPN_WIDTH: usize = VA_WIDTH - PAGE_SIZE_BITS;
