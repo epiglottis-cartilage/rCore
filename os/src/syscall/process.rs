@@ -1,5 +1,5 @@
 //! App management syscalls
-use alloc::sync::Arc;
+use alloc::{string::String, sync::Arc};
 
 use crate::{
     fs, memory,
@@ -51,22 +51,16 @@ pub fn sys_fork() -> isize {
 
 pub fn sys_exec(path: *const *const str, args: *const *const [*const str]) -> isize {
     let token = task::current_user_token();
-    let path = if let Some(path) = memory::translate_str(token, path) {
+    let path = if let Ok(path) = String::from_utf8(memory::translate_bytes(token, path)) {
         path
     } else {
         return -1;
     };
-
-    let args = if let Some(args) = memory::translate_str_slice(token, args) {
-        args
-    } else {
-        return -1;
-    };
-
+    let args = memory::translate_bytes_slice(token, args);
     if let Some(app_inode) = fs::open_file(path.as_str(), crate::fs::OpenFlag::RDONLY) {
         let all_data = app_inode.read_all();
         let task = current_task().unwrap();
-        task.exec(all_data.as_slice());
+        task.exec(all_data.as_slice(), args);
         0
     } else {
         -1

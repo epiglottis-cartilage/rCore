@@ -4,7 +4,7 @@ use super::TaskContext;
 use super::cfg::TRAP_CONTEXT;
 use super::{KernelStack, PidHandle, pid_alloc};
 use crate::fs::{Stderr, Stdin, Stdout};
-use crate::memory::{KERNEL_SPACE, MemorySet, PageTableDirect, PhysPageNum, VirtAddr};
+use crate::memory::{self, KERNEL_SPACE, MemorySet, PageTableDirect, PhysPageNum, VirtAddr};
 use crate::sync::UPSafeCell;
 use crate::trap::{TrapContext, trap_handler};
 use alloc::sync::{Arc, Weak};
@@ -116,39 +116,89 @@ impl TaskControlBlock {
             kernel_stack_top,
             trap_handler as usize,
         );
+        // trap_cx.x[10] = argv_ptr;
         task_control_block
     }
-    pub fn exec(&self, elf_data: &[u8]) {
+    pub fn exec(&self, elf_data: &[u8], args: Vec<Vec<u8>>) {
         // memory_set with elf program headers/trampoline/trap context/user stack
-        let (memory_set, user_sp, entry_point) = MemorySet::from_elf(elf_data);
+        let (memory_set, mut user_sp, entry_point) = MemorySet::from_elf(elf_data);
+
+        // argv[0] : str  <-----|
+        // ...     : str  <---| |
+        // argv[n] : str  <-| | |
+        // argv[n] : &str --| | |
+        // ...     : &str ----| |
+        // argv[0] : &str ------|
+        // // argv    : &[&str;n]
+
+        // push arguments on user stack
+        for arg in args.iter() {
+            user_sp -= arg.len() as usize;
+            // copying bytes from kernel space to user space
+            let mut arg_slice = arg.as_slice();
+
+            memory::translate_sized(memory_set.token(), user_sp as *mut u8, arg.len())
+                .into_iter()
+                .for_each(|dst| {
+                    let (src, remain) = arg_slice.split_at(dst.len());
+                    dst.copy_from_slice(src);
+                    arg_slice = remain;
+                });
+        }
+        let mut arg_ptr = user_sp;
+
+        // align to &str
+        user_sp -= user_sp % align_of::<&str>();
+        for arg in args.iter().rev() {
+            user_sp -= core::mem::size_of::<usize>();
+            let len = memory::translate_ref_mut(memory_set.token(), user_sp as *mut usize);
+            *len = arg.len();
+            user_sp -= core::mem::size_of::<&u8>();
+            let ptr = memory::translate_ref_mut(memory_set.token(), user_sp as *mut *const u8);
+            *ptr = arg_ptr as _;
+            arg_ptr += arg.len() as usize;
+        }
+        let args_ptr = user_sp;
+
+        // align to &[&str]
+        user_sp -= user_sp % align_of::<&[&str]>();
+        user_sp -= core::mem::size_of::<usize>();
+        let len = memory::translate_ref_mut(memory_set.token(), user_sp as *mut usize);
+        *len = args.len();
+        user_sp -= core::mem::size_of::<&u8>();
+        let ptr = memory::translate_ref_mut(memory_set.token(), user_sp as *mut *const u8);
+        *ptr = args_ptr as _;
+        let argv_ptr = user_sp;
+
+        // make the user_sp aligned to 8
+        user_sp -= user_sp % core::mem::size_of::<usize>();
+
+        // **** access current TCB exclusively
         let trap_cx_ppn = memory_set
             .translate(VirtAddr::from(TRAP_CONTEXT).into())
             .unwrap()
             .ppn();
 
-        // **** access inner exclusively
+        // **** access current TCB exclusively
         let mut inner = self.inner_exclusive_access();
         // substitute memory_set
         inner.memory_set = memory_set;
         // update trap_cx ppn
         inner.trap_cx_ppn = trap_cx_ppn;
-        // initialize base_size
-        inner.base_size = user_sp;
         // initialize trap_cx
-        let trap_cx = inner.get_trap_cx();
-        let kernel_ppn: PhysPageNum = unsafe { KERNEL_SPACE.as_ref() }
-            .unwrap()
-            .exclusive_access()
-            .token()
-            .into();
-        *trap_cx = TrapContext::app_init_context(
+        let mut trap_cx = TrapContext::app_init_context(
             entry_point,
             user_sp,
-            kernel_ppn.into(),
+            unsafe { KERNEL_SPACE.as_ref() }
+                .unwrap()
+                .exclusive_access()
+                .token(),
             self.kernel_stack.get_top(),
             trap_handler as usize,
         );
-        // **** release inner automatically
+        trap_cx.x[10] = argv_ptr;
+        *inner.get_trap_cx() = trap_cx;
+        // **** release current PCB
     }
     pub fn fork(self: &Arc<Self>) -> Arc<Self> {
         // ---- access parent PCB exclusively

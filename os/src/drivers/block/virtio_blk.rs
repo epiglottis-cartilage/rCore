@@ -1,5 +1,3 @@
-use core::ptr::addr_of_mut;
-
 use super::BlockDevice;
 use crate::memory::{
     FrameTracker, PageTable, PhysAddr, PhysPageNum, VirtAddr, frame_alloc, frame_dealloc,
@@ -19,10 +17,7 @@ static mut QUEUE_FRAMES: Option<UPSafeCell<Vec<FrameTracker>>> = None;
 #[deny(dead_code)]
 pub fn init() {
     unsafe {
-        core::ptr::write_volatile(
-            addr_of_mut!(QUEUE_FRAMES),
-            Some(UPSafeCell::new(Vec::new())),
-        );
+        QUEUE_FRAMES = Some(UPSafeCell::new(Vec::new()));
     }
 }
 impl BlockDevice for VirtIOBlock {

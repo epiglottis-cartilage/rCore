@@ -1,7 +1,6 @@
 //! Implementation of [`PageTableEntry`] and [`PageTable`].
 
 use super::{FrameTracker, PhysAddr, PhysPageNum, VirtAddr, VirtPageNum, frame_alloc};
-use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 
@@ -199,35 +198,31 @@ pub fn translate_necked_slice<T: 'static>(
     token: PageTableDirect,
     ptr: *const *const [*const [T]],
 ) -> impl DoubleEndedIterator<Item = *const *const [T]> {
-    let raw_ptr = translate_ref(token, ptr as *const *const [T]);
+    let raw_ptr = *translate_ref(token, ptr as *const *const *const [T]);
     let len = *translate_ref(token, unsafe { (ptr as *const usize).add(1) });
 
-    unsafe {
-        core::slice::from_raw_parts(raw_ptr as *const _, len * 2)
-            .iter()
-            .map(|ptr: &*const [T]| ptr as *const _)
-            .step_by(2)
-    }
+    (raw_ptr as usize..raw_ptr as usize + len * size_of::<*const [*const [T]]>())
+        .step_by(size_of::<*const [*const [T]]>())
+        .map(|ptr| ptr as _)
 }
 
-pub fn translate_str_slice(
+pub fn translate_bytes_slice(
     token: PageTableDirect,
     ptr: *const *const [*const str],
-) -> Option<Vec<String>> {
+) -> Vec<Vec<u8>> {
     translate_necked_slice(token, ptr as *const *const [*const [u8]])
         .into_iter()
-        .map(|ptr| translate_str(token, ptr as _))
-        .try_collect()
+        .map(|ptr| translate_bytes(token, ptr as _))
+        .collect()
 }
 
 /// translate a pointer to a mutable u8 Vec end with `\0` through page table to a `String`
-pub fn translate_str(token: PageTableDirect, ptr: *const *const str) -> Option<String> {
+pub fn translate_bytes(token: PageTableDirect, ptr: *const *const str) -> Vec<u8> {
     let (strs, len) = translate_slice(token, ptr as *const *const [u8]);
-    let bytes = strs.iter().fold(Vec::with_capacity(len), |mut acc, str| {
+    strs.iter().fold(Vec::with_capacity(len), |mut acc, str| {
         acc.extend_from_slice(*str);
         acc
-    });
-    String::from_utf8(bytes).ok()
+    })
 }
 
 /// translate a generic through page table and return a mutable reference

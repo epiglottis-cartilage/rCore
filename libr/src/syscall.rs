@@ -14,6 +14,9 @@ fn syscall(id: SyscallID, args: [usize; 3]) -> isize {
     }
     ret
 }
+pub(crate) fn sys_dup(fd: usize) -> isize {
+    syscall(SyscallID::Dup, [fd, 0, 0])
+}
 pub(crate) fn sys_open(path: &&str, flag: OpenFlag) -> isize {
     syscall(SyscallID::Open, [path as *const _ as _, flag.bits(), 0])
 }

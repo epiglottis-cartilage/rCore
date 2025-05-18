@@ -23,19 +23,23 @@ pub fn handle_alloc_error(layout: core::alloc::Layout) -> ! {
     panic!("Heap allocation error, layout = {:?}", layout);
 }
 unsafe extern "Rust" {
-    safe fn main() -> i32;
+    safe fn main(args: &[&[u8]]) -> i32;
 }
 
 #[unsafe(no_mangle)]
 #[unsafe(link_section = ".text.entry")]
-pub extern "C" fn _start() -> ! {
+pub extern "C" fn _start(args: *const &[&[u8]]) -> ! {
     unsafe {
         #[allow(static_mut_refs)]
         HEAP.lock().init(HEAP_SPACE.as_ptr() as _, USER_HEAP_SIZE);
     }
-    exit(main());
+    exit(main(
+        unsafe { args.as_ref() }.map(|arg| *arg).unwrap_or(&[]),
+    ));
 }
-
+pub fn dup(fd: usize) -> isize {
+    sys_dup(fd)
+}
 pub fn open(name: &str, flags: OpenFlag) -> isize {
     sys_open(&name, flags)
 }

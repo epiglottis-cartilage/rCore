@@ -4,7 +4,6 @@
 //!
 //! `UPSafeCell<OSInodeInner>` -> `OSInode`: for static `ROOT_INODE`,we
 //! need to wrap `OSInodeInner` into `UPSafeCell`
-use core::ptr::addr_of_mut;
 
 use super::File;
 use super::cfg::OpenFlag;
@@ -60,7 +59,7 @@ pub fn init() {
     let efs = EasyFileSystem::open(unsafe { BLOCK_DEVICE.as_ref() }.unwrap().clone());
     let root_inode = Arc::new(EasyFileSystem::root_inode(&efs));
     unsafe {
-        core::ptr::write_volatile(addr_of_mut!(ROOT_INODE), Some(root_inode.clone()));
+        ROOT_INODE = Some(root_inode.clone());
     };
 }
 /// List all files in the filesystems

@@ -1,7 +1,5 @@
 mod virtio_blk;
 
-use core::ptr::addr_of_mut;
-
 pub use virtio_blk::VirtIOBlock;
 
 use super::BlockDeviceImpl;
@@ -15,7 +13,7 @@ pub fn init() {
     virtio_blk::init();
     let block_device: Arc<dyn BlockDevice> = Arc::new(BlockDeviceImpl::new());
     unsafe {
-        core::ptr::write_volatile(addr_of_mut!(BLOCK_DEVICE), Some(block_device));
+        BLOCK_DEVICE = Some(block_device.clone());
     };
 }
 

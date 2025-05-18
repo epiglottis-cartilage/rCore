@@ -18,8 +18,8 @@ pub use memory_set::remap_test;
 pub use memory_set::{KERNEL_SPACE, MapPermission, MemorySet, kernel_token};
 pub use page_table::{PageTable, PageTableDirect, PageTableEntryFlags};
 pub use page_table::{
-    PageTableEntry, UserBuffer, translate_necked_slice, translate_ref, translate_ref_mut,
-    translate_sized, translate_slice, translate_str, translate_str_slice,
+    PageTableEntry, UserBuffer, translate_bytes, translate_bytes_slice, translate_necked_slice,
+    translate_ref, translate_ref_mut, translate_sized, translate_slice, translate_to,
 };
 
 use config::memory as cfg;

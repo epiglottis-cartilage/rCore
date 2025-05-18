@@ -35,6 +35,6 @@ pub fn syscall(syscall_id: SyscallID, args: [usize; 3]) -> isize {
         SyscallID::Open => sys_open(args[0] as _, args[1]),
         SyscallID::Close => sys_close(args[0]),
         SyscallID::Pipe => sys_pipe(args[0] as _, args[1] as _),
-        // _ => unreachable!("Unsupported syscall_id: {:?}", syscall_id),
+        _ => unreachable!("Unsupported syscall_id: {:?}", syscall_id),
     }
 }

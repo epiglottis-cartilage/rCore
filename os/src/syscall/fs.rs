@@ -1,5 +1,7 @@
 //! File and filesystem-related syscalls
 
+use alloc::string::String;
+
 use crate::fs;
 use crate::memory;
 use crate::task;
@@ -56,7 +58,7 @@ pub fn sys_read(fd: usize, buf: *const u8, len: usize) -> isize {
 pub fn sys_open(path: *const *const str, flags: usize) -> isize {
     let task = task::current_task().unwrap();
     let token = task::current_user_token();
-    let path = if let Some(path) = memory::translate_str(token, path) {
+    let path = if let Ok(path) = String::from_utf8(memory::translate_bytes(token, path)) {
         path
     } else {
         return -1;

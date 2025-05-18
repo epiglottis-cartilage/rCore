@@ -14,7 +14,6 @@
 
 mod context;
 
-use crate::memory::PageTableDirect;
 use crate::syscall::syscall;
 use crate::task;
 
@@ -100,7 +99,7 @@ pub(crate) fn trap_handler() -> ! {
             },
             Trap::Exception(e) => match e {
                 Exception::IllegalInstruction => {
-                    println!("[kernel] IllegalInstruction in application, kernel killed it.");
+                    log::error!("[kernel] IllegalInstruction in application, kernel killed it.");
                     task::exit_current_and_run_next(-3);
                 }
                 Exception::Breakpoint => todo!(),
@@ -112,7 +111,7 @@ pub(crate) fn trap_handler() -> ! {
                 | Exception::StoreMisaligned
                 | Exception::InstructionMisaligned
                 | Exception::InstructionFault) => {
-                    println!(
+                    log::error!(
                         "[kernel] {:?} in application, bad addr = {:#x}, bad instruction = {:#x}, kernel killed it.",
                         exception,
                         stval,

@@ -119,7 +119,7 @@ pub fn init() {
     manager::init();
     processor::init();
     let init_proc = Arc::new({
-        let inode = fs::open_file(cfg::INIT_PROC_NAME, crate::fs::OpenFlag::RDONLY).unwrap();
+        let inode = fs::open_file(cfg::INIT_PROC_NAME, fs::OpenFlag::RDONLY).unwrap();
         let v = inode.read_all();
         TaskControlBlock::new(v.as_slice())
     });

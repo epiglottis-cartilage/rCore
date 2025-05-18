@@ -23,5 +23,6 @@ pub use stdio::{Stderr, Stdin, Stdout};
 
 #[deny(dead_code)]
 pub fn init() {
+    easy_fs::init();
     inode::init();
 }

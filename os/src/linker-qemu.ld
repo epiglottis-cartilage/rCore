@@ -16,26 +16,26 @@ SECTIONS
         . = ALIGN(4K);
         *(.text .text.*)
     }
-
     . = ALIGN(4K);
     etext = .;
+
     srodata = .;
     .rodata : {
         *(.rodata .rodata.*)
         *(.srodata .srodata.*)
     }
-
     . = ALIGN(4K);
     erodata = .;
+
     sdata = .;
     .data : {
         *(.data.stack)
         *(.data .data.*)
         *(.sdata .sdata.*)
     }
-
     . = ALIGN(4K);
     edata = .;
+    
     sbss_with_stack = .;
     .bss : {
         sbss = .;

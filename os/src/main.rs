@@ -6,6 +6,7 @@
 #![feature(fn_align)]
 #![allow(static_mut_refs)]
 #![feature(iterator_try_collect)]
+#![feature(slice_from_ptr_range)]
 pub mod lang_items;
 
 mod sbi;
@@ -32,7 +33,6 @@ use log::*;
 pub fn main() -> ! {
     clear_bss();
     logging::init();
-    trap::init();
     info!("Hello, world!");
     memory::init();
     info!("back to world!");
@@ -40,7 +40,6 @@ pub fn main() -> ! {
     trap::init();
 
     drivers::init();
-    easy_fs::init();
     fs::init();
     fs::list_apps();
     task::init();
@@ -53,10 +52,8 @@ pub fn main() -> ! {
 /// Clear the .bss section
 fn clear_bss() {
     unsafe {
-        core::slice::from_raw_parts_mut(
-            label::sbss as usize as *mut u8,
-            label::ebss as usize - label::sbss as usize,
-        )
-        .fill(0);
+        let sbss = label::sbss as usize as *mut u8;
+        let ebss = label::ebss as usize as *mut u8;
+        core::slice::from_mut_ptr_range(sbss..ebss).fill(0);
     };
 }
