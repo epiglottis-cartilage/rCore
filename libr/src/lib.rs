@@ -7,7 +7,11 @@ pub mod console;
 mod lang_items;
 mod syscall;
 
-pub use config::fs::OpenFlag;
+pub use config::{
+    fs::OpenFlag,
+    signal::{SignalAction, SignalID},
+    syscall::SyscallID,
+};
 use linked_list_allocator::LockedHeap;
 use syscall::*;
 
@@ -108,4 +112,27 @@ pub fn sleep(period_ms: usize) {
     while get_time() < start + period_ms {
         r#yield();
     }
+}
+pub fn kill(pid: usize, signum: SignalID) -> isize {
+    sys_kill(pid, signum)
+}
+
+pub fn sigaction(
+    signum: SignalID,
+    action: Option<&SignalAction>,
+    old_action: Option<&mut SignalAction>,
+) -> isize {
+    sys_sigaction(
+        signum,
+        action.map_or(core::ptr::null(), |a| a),
+        old_action.map_or(core::ptr::null_mut(), |a| a),
+    )
+}
+
+pub fn sigprocmask(mask: u32) -> isize {
+    sys_sigprocmask(mask)
+}
+
+pub fn sigreturn() -> isize {
+    sys_sigreturn()
 }

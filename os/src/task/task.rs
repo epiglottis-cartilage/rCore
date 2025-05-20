@@ -1,7 +1,7 @@
 //! Types related to task management
 
 use super::TaskContext;
-use super::cfg::TRAP_CONTEXT;
+use super::cfg::{SignalActions, SignalFlags, SignalID, TRAP_CONTEXT};
 use super::{KernelStack, PidHandle, pid_alloc};
 use crate::fs::{Stderr, Stdin, Stdout};
 use crate::memory::{self, KERNEL_SPACE, MemorySet, PageTableDirect, PhysPageNum, VirtAddr};
@@ -31,6 +31,17 @@ pub struct TaskControlBlockInner {
     pub children: Vec<Arc<TaskControlBlock>>,
     pub exit_code: i32,
     pub fd_table: Vec<Option<Arc<dyn crate::fs::File + Send + Sync>>>,
+    pub signals: SignalFlags,
+    pub signal_mask: SignalFlags,
+    // the signal which is being handling
+    pub handling_sig: Option<SignalID>,
+    // Signal actions
+    pub signal_actions: SignalActions,
+    // if the task is killed
+    pub killed: bool,
+    // if the task is frozen by a signal
+    pub frozen: bool,
+    pub trap_ctx_backup: Option<TrapContext>,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]
@@ -99,6 +110,13 @@ impl TaskControlBlock {
                         // 2 -> stderr
                         Some(Arc::new(Stderr)),
                     ],
+                    signals: SignalFlags::empty(),
+                    signal_mask: SignalFlags::empty(),
+                    handling_sig: None,
+                    signal_actions: SignalActions::default(),
+                    killed: false,
+                    frozen: false,
+                    trap_ctx_backup: None,
                 })
             },
         };
@@ -232,6 +250,13 @@ impl TaskControlBlock {
                     children: Vec::new(),
                     exit_code: 0,
                     fd_table: new_fd_table,
+                    signals: SignalFlags::empty(),
+                    signal_mask: SignalFlags::empty(),
+                    handling_sig: None,
+                    signal_actions: SignalActions::default(),
+                    killed: false,
+                    frozen: false,
+                    trap_ctx_backup: None,
                 })
             },
         });

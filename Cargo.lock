@@ -453,6 +453,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "sig_sample"
+version = "0.1.0"
+dependencies = [
+ "libr",
+]
+
+[[package]]
 name = "sleep"
 version = "0.1.0"
 dependencies = [

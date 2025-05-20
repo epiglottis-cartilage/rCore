@@ -30,7 +30,7 @@ members = [
     "user/args",
     "user/echo",
     "user/pipetest",
-    "user/pipe_large_test",
+    "user/pipe_large_test", "user/sig_sample",
 ]
 resolver = "3"
 

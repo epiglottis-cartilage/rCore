@@ -1,4 +1,4 @@
-use config::{fs::OpenFlag, syscall::SyscallID};
+use super::{OpenFlag, SignalAction, SignalID, SyscallID};
 use core::arch::asm;
 
 fn syscall(id: SyscallID, args: [usize; 3]) -> isize {
@@ -45,6 +45,9 @@ pub(crate) fn sys_exit(exit_code: i32) -> ! {
 pub(crate) fn sys_yield() -> isize {
     syscall(SyscallID::Yield, [0, 0, 0])
 }
+pub fn sys_kill(pid: usize, signal: SignalID) -> isize {
+    syscall(SyscallID::Kill, [pid, signal as _, 0])
+}
 pub(crate) fn sys_get_time() -> usize {
     syscall(SyscallID::GetTime, [0, 0, 0]).cast_unsigned()
 }
@@ -66,4 +69,22 @@ pub(crate) fn sys_exec(path: &&str, argv: &&[&str]) -> isize {
 }
 pub(crate) fn sys_waitpid(pid: isize, exit_code: *mut i32) -> isize {
     syscall(SyscallID::WaitPid, [pid as _, exit_code as _, 0])
+}
+pub fn sys_sigaction(
+    signum: SignalID,
+    action: *const SignalAction,
+    old_action: *mut SignalAction,
+) -> isize {
+    syscall(
+        SyscallID::SigAction,
+        [signum as _, action as _, old_action as _],
+    )
+}
+
+pub fn sys_sigprocmask(mask: u32) -> isize {
+    syscall(SyscallID::SigProcMask, [mask as _, 0, 0])
+}
+
+pub fn sys_sigreturn() -> isize {
+    syscall(SyscallID::SigReturn, [0, 0, 0])
 }
