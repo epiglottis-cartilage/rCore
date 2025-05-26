@@ -26,9 +26,12 @@ static SUCC_TESTS: &[(&str, &str, &str, &str, i32)] = &[
     ("pipe_large_test", "", "", "", 0),
     ("pipetest", "", "", "", 0),
 ];
-
-static FAIL_TESTS: &[(&str, &str, &str, &str, i32)] = &[("stack_overflow", "", "", "", -2)];
-
+static FAIL_TESTS: &[(&str, &str, &str, &str, i32)] = &[
+    ("stack_overflow", "", "", "", -11),
+    ("priv_csr", "", "", "", -4),
+    ("priv_inst", "", "", "", -4),
+    ("store_fault", "", "", "", -11),
+];
 use libr::{exec, fork, waitpid};
 
 fn run_tests(tests: &[(&str, &str, &str, &str, i32)]) -> i32 {

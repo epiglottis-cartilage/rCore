@@ -69,7 +69,7 @@ fn trap_from_kernel() -> ! {
     let scause = scause::read(); // get trap cause
     let stval = stval::read(); // get extra value
     if let Ok(reason) = scause.cause().try_into::<Interrupt, Exception>() {
-        log::error!("trap from kerne {:?}", reason);
+        panic!("trap from kerne {:?}", reason);
     } else {
         panic!(
             "Unsupported trap {:?}, stval = {:#x}!",
@@ -77,7 +77,6 @@ fn trap_from_kernel() -> ! {
             stval
         );
     }
-    panic!("a trap from kernel!");
 }
 
 /// handle an interrupt, exception, or system call from user space
@@ -103,7 +102,7 @@ pub(crate) fn trap_handler() -> ! {
             Trap::Exception(e) => match e {
                 Exception::IllegalInstruction => {
                     log::error!("[kernel] IllegalInstruction in application.");
-                    task::current_add_signal(cfg::SignalFlags::ILL);
+                    task::current_add_signal(cfg::SignalID::ILL);
                 }
                 Exception::Breakpoint => todo!(),
                 exception @ (Exception::LoadFault
@@ -120,7 +119,7 @@ pub(crate) fn trap_handler() -> ! {
                         stval,
                         task::current_trap_cx().sepc,
                     );
-                    task::current_add_signal(cfg::SignalFlags::SEGV);
+                    task::current_add_signal(cfg::SignalID::SEGV);
                 }
                 Exception::UserEnvCall => {
                     cx.sepc += 4;

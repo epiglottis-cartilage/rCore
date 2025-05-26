@@ -137,9 +137,9 @@ pub fn check_signals_error_of_current() -> Option<(i32, &'static str)> {
     task.inner_exclusive_access().signals.check_error()
 }
 
-pub fn current_add_signal(signal: cfg::SignalFlags) {
+pub fn current_add_signal(signal: cfg::SignalID) {
     let task = current_task().unwrap();
-    task.inner_exclusive_access().signals |= signal;
+    task.inner_exclusive_access().signals |= signal.into();
 }
 
 fn call_kernel_signal_handler(signal: cfg::SignalFlags) {
@@ -158,7 +158,7 @@ fn call_kernel_signal_handler(signal: cfg::SignalFlags) {
         }
         _ => {
             log::info!(
-                "[K] call_kernel_signal_handler:: current task sigflag {:?}",
+                "[kernel] call_kernel_signal_handler:: current task sigflag {:?}",
                 task_inner.signals
             );
             task_inner.killed = true;
@@ -189,14 +189,16 @@ fn call_user_signal_handler(sig: cfg::SignalID, signal: cfg::SignalFlags) {
         trap_ctx.x[10] = sig as usize;
     } else {
         // default action
-        println!("[K] task/call_user_signal_handler: default action: ignore it or kill process");
+        log::info!(
+            "[kernel] task/call_user_signal_handler: default action: ignore it or kill process"
+        );
     }
 }
 
 fn check_pending_signals() {
     for sig in 0..cfg::SIG_NUM {
-        let signal = cfg::SignalFlags::from_bits(1 << sig).unwrap();
         let sig: cfg::SignalID = sig.into();
+        let signal: cfg::SignalFlags = sig.into();
         let task = current_task().unwrap();
         let task_inner = task.inner_exclusive_access();
         if task_inner.signals.contains(signal) && (!task_inner.signal_mask.contains(signal)) {

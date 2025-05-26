@@ -60,14 +60,6 @@ impl SignalID {
 
 pub const SIG_NUM: usize = 32;
 
-/// Action for a signal
-#[repr(C, align(16))]
-#[derive(Debug, Clone, Copy)]
-pub struct SignalAction {
-    pub handler: usize,
-    pub mask: SignalFlags,
-}
-
 bitflags::bitflags! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct SignalFlags: u32 {
@@ -105,6 +97,11 @@ bitflags::bitflags! {
         const SYS = 1 << SignalID::SYS as u32;
     }
 }
+impl From<SignalID> for SignalFlags {
+    fn from(id: SignalID) -> Self {
+        unsafe { core::mem::transmute(1 << id as u32) }
+    }
+}
 impl SignalFlags {
     pub fn check_error(&self) -> Option<(i32, &'static str)> {
         if self.contains(Self::INT) {
@@ -126,6 +123,13 @@ impl SignalFlags {
     }
 }
 
+/// Action for a signal
+#[repr(C, align(16))]
+#[derive(Debug, Clone, Copy)]
+pub struct SignalAction {
+    pub handler: usize,
+    pub mask: SignalFlags,
+}
 impl Default for SignalAction {
     fn default() -> Self {
         Self {
