@@ -1,5 +1,5 @@
 //!Implementation of [`Processor`] and Intersection of control flow
-use super::__switch;
+use super::switch;
 use super::{TaskContext, TaskControlBlock};
 use super::{TaskStatus, fetch_task};
 use crate::memory::PageTableDirect;
@@ -66,9 +66,7 @@ pub fn run_tasks() {
             processor.current = Some(task);
             // release processor manually
             drop(processor);
-            unsafe {
-                __switch(idle_task_cx_ptr, next_task_cx_ptr);
-            }
+            switch(idle_task_cx_ptr, next_task_cx_ptr);
         }
     }
 }
@@ -104,7 +102,5 @@ pub fn schedule(switched_task_cx_ptr: *mut TaskContext) {
     let mut processor = unsafe { PROCESSOR.as_ref() }.unwrap().exclusive_access();
     let idle_task_cx_ptr = processor.get_idle_task_cx_ptr();
     drop(processor);
-    unsafe {
-        __switch(switched_task_cx_ptr, idle_task_cx_ptr);
-    }
+    switch(switched_task_cx_ptr, idle_task_cx_ptr);
 }

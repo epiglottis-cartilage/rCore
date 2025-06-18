@@ -27,7 +27,7 @@ pub use pid::{KernelStack, PidHandle, pid_alloc};
 pub use processor::{
     current_task, current_trap_cx, current_user_token, run_tasks, schedule, take_current_task,
 };
-use switch::__switch;
+use switch::switch;
 use task::{TaskControlBlock, TaskStatus};
 
 mod cfg {

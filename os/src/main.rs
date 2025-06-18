@@ -7,6 +7,7 @@
 #![allow(static_mut_refs)]
 #![feature(iterator_try_collect)]
 #![feature(slice_from_ptr_range)]
+#![feature(naked_functions)]
 pub mod lang_items;
 
 mod sbi;
