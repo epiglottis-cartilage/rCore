@@ -7,6 +7,7 @@ use core::alloc::Layout;
 use core::mem::ManuallyDrop;
 use core::ptr::{addr_of, addr_of_mut};
 use spin::Mutex;
+use uniprocessor::UpSafeLazyCell;
 
 /// Use `ManuallyDrop` to ensure data is deallocated with an alignment of `BLOCK_SZ`
 struct CacheData(ManuallyDrop<Box<[u8; BLOCK_SZ]>>);
@@ -166,14 +167,8 @@ impl BlockCacheManager {
 }
 
 /// The global block cache manager
-pub static mut BLOCK_CACHE_MANAGER: Option<Mutex<BlockCacheManager>> = None;
-
-#[deny(dead_code)]
-pub fn init() {
-    unsafe {
-        BLOCK_CACHE_MANAGER = Some(Mutex::new(BlockCacheManager::new()));
-    }
-}
+pub static BLOCK_CACHE_MANAGER: UpSafeLazyCell<Mutex<BlockCacheManager>> =
+    unsafe { UpSafeLazyCell::new(|| Mutex::new(BlockCacheManager::new())) };
 
 /// Get the block cache corresponding to the given block id and block device
 pub fn get_block_cache(
@@ -181,15 +176,14 @@ pub fn get_block_cache(
     block_device: Arc<dyn BlockDevice>,
 ) -> Arc<Mutex<BlockCache>> {
     #[allow(static_mut_refs)]
-    unsafe { BLOCK_CACHE_MANAGER.as_ref() }
-        .unwrap()
+    BLOCK_CACHE_MANAGER
         .lock()
         .get_block_cache(block_id, block_device)
 }
 /// Sync all block cache to block device
 pub fn block_cache_sync_all() {
     #[allow(static_mut_refs)]
-    let manager = unsafe { BLOCK_CACHE_MANAGER.as_ref() }.unwrap().lock();
+    let manager = BLOCK_CACHE_MANAGER.lock();
     for (_, cache) in manager.queue.iter() {
         cache.lock().sync();
     }

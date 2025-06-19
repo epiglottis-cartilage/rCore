@@ -28,10 +28,5 @@ use config::memory as cfg;
 /// initiate heap allocator, frame allocator and kernel space
 pub fn init() {
     heap_allocator::init();
-    frame_allocator::init();
-    memory_set::init();
-    unsafe { KERNEL_SPACE.as_ref() }
-        .unwrap()
-        .borrow_mut()
-        .activate();
+    KERNEL_SPACE.borrow_mut().activate();
 }

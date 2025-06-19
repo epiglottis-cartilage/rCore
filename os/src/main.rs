@@ -39,10 +39,8 @@ pub fn main() -> ! {
     memory::remap_test();
     trap::init();
 
-    drivers::init();
-    fs::init();
     fs::list_apps();
-    task::init();
+    task::add_init();
     trap::enable_timer_interrupt();
     timer::set_next_trigger();
     task::run_tasks();

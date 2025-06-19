@@ -3,10 +3,9 @@ use super::switch;
 use super::{TaskContext, TaskControlBlock};
 use super::{TaskStatus, fetch_task};
 use crate::memory::PageTableDirect;
-use crate::sync::UpSafeCell;
+use crate::sync::{UpSafeCell, UpSafeLazyCell};
 use crate::trap::TrapContext;
 use alloc::sync::Arc;
-use core::ptr::addr_of;
 
 ///Processor management structure
 pub struct Processor {
@@ -38,23 +37,14 @@ impl Processor {
     }
 }
 
-static mut PROCESSOR: Option<UpSafeCell<Processor>> = None;
-
-#[deny(dead_code)]
-///Initialize the processor
-pub fn init() {
-    let processor = unsafe { UpSafeCell::new(Processor::new()) };
-    log::debug!("init PROCESSOR at {:#p}", addr_of!(PROCESSOR));
-    unsafe {
-        PROCESSOR = Some(processor);
-    }
-}
+static PROCESSOR: UpSafeLazyCell<UpSafeCell<Processor>> =
+    unsafe { UpSafeLazyCell::new(|| UpSafeCell::new(Processor::new())) };
 
 ///The main part of process execution and scheduling
 ///Loop `fetch_task` to get the process that needs to run, and switch the process through `__switch`
 pub fn run_tasks() {
     loop {
-        let mut processor = unsafe { PROCESSOR.as_ref() }.unwrap().borrow_mut();
+        let mut processor = PROCESSOR.borrow_mut();
         if let Some(task) = fetch_task() {
             let idle_task_cx_ptr = processor.get_idle_task_cx_ptr();
             // access coming task TCB exclusively
@@ -72,17 +62,11 @@ pub fn run_tasks() {
 }
 ///Take the current task,leaving a None in its place
 pub fn take_current_task() -> Option<Arc<TaskControlBlock>> {
-    unsafe { PROCESSOR.as_ref() }
-        .unwrap()
-        .borrow_mut()
-        .take_current()
+    PROCESSOR.borrow_mut().take_current()
 }
 ///Get running task
 pub fn current_task() -> Option<Arc<TaskControlBlock>> {
-    unsafe { PROCESSOR.as_ref() }
-        .unwrap()
-        .borrow_mut()
-        .current()
+    PROCESSOR.borrow_mut().current()
 }
 ///Get token of the address space of current task
 pub fn current_user_token() -> PageTableDirect {
@@ -99,7 +83,7 @@ pub fn current_trap_cx() -> &'static mut TrapContext {
 }
 ///Return to idle control flow for new scheduling
 pub fn schedule(switched_task_cx_ptr: *mut TaskContext) {
-    let mut processor = unsafe { PROCESSOR.as_ref() }.unwrap().borrow_mut();
+    let mut processor = PROCESSOR.borrow_mut();
     let idle_task_cx_ptr = processor.get_idle_task_cx_ptr();
     drop(processor);
     unsafe { switch(switched_task_cx_ptr, idle_task_cx_ptr) };

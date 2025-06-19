@@ -122,11 +122,7 @@ impl TaskControlBlock {
         };
         // prepare TrapContext in user space
         let trap_cx = task_control_block.inner_exclusive_access().get_trap_cx();
-        let kernel_ppn: PhysPageNum = unsafe { KERNEL_SPACE.as_ref() }
-            .unwrap()
-            .borrow_mut()
-            .token()
-            .into();
+        let kernel_ppn: PhysPageNum = KERNEL_SPACE.borrow_mut().token().into();
         *trap_cx = TrapContext::app_init_context(
             entry_point,
             user_sp,
@@ -207,10 +203,7 @@ impl TaskControlBlock {
         let mut trap_cx = TrapContext::app_init_context(
             entry_point,
             user_sp,
-            unsafe { KERNEL_SPACE.as_ref() }
-                .unwrap()
-                .borrow_mut()
-                .token(),
+            KERNEL_SPACE.borrow_mut().token(),
             self.kernel_stack.get_top(),
             trap_handler as usize,
         );

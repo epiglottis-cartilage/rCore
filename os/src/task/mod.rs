@@ -18,8 +18,8 @@ mod switch;
 #[allow(clippy::module_inception)]
 mod task;
 
-use crate::fs;
 use crate::sbi::shutdown;
+use crate::{fs, sync::UpSafeLazyCell};
 use alloc::sync::Arc;
 use context::TaskContext;
 pub use manager::{add_task, fetch_task, pid2task, remove_from_pid2task};
@@ -88,12 +88,9 @@ pub fn exit_current_and_run_next(exit_code: i32) {
 
     // ++++++ access initproc TCB exclusively
     {
-        let mut initproc_inner = unsafe { INITPROC.as_ref() }
-            .unwrap()
-            .inner_exclusive_access();
+        let mut initproc_inner = INITPROC.inner_exclusive_access();
         for child in inner.children.iter() {
-            child.inner_exclusive_access().parent =
-                Some(Arc::downgrade(unsafe { INITPROC.as_ref() }.unwrap()));
+            child.inner_exclusive_access().parent = Some(Arc::downgrade(&*INITPROC));
             initproc_inner.children.push(child.clone());
         }
     }
@@ -111,25 +108,19 @@ pub fn exit_current_and_run_next(exit_code: i32) {
     schedule(&mut _unused as *mut _);
 }
 
-///Globle process that init user shell
-#[unsafe(link_section = ".data")]
-static mut INITPROC: Option<Arc<TaskControlBlock>> = None;
-///Add init process to the manager
-
-#[deny(dead_code)]
-pub fn init() {
-    pid::init();
-    manager::init();
-    processor::init();
-    let init_proc = Arc::new({
-        let inode = fs::open_file(cfg::INIT_PROC_NAME, fs::OpenFlag::RDONLY).unwrap();
-        let v = inode.read_all();
-        TaskControlBlock::new(v.as_slice())
-    });
-    unsafe {
-        INITPROC = Some(init_proc.clone());
-    }
-    add_task(unsafe { INITPROC.as_ref() }.unwrap().clone());
+/// Globle process that init user shell
+static INITPROC: UpSafeLazyCell<Arc<TaskControlBlock>> = unsafe {
+    UpSafeLazyCell::new(|| {
+        Arc::new({
+            let inode = fs::open_file(cfg::INIT_PROC_NAME, fs::OpenFlag::RDONLY).unwrap();
+            let v = inode.read_all();
+            TaskControlBlock::new(v.as_slice())
+        })
+    })
+};
+/// Add init process to the manager
+pub fn add_init() {
+    add_task(INITPROC.clone());
 }
 
 pub fn check_signals_error_of_current() -> Option<(i32, &'static str)> {

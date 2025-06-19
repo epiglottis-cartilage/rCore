@@ -2,24 +2,22 @@ mod virtio_blk;
 
 pub use virtio_blk::VirtIOBlock;
 
+use crate::sync::UpSafeLazyCell;
+
 use super::BlockDeviceImpl;
 use alloc::sync::Arc;
 use easy_fs::BlockDevice;
 
-pub static mut BLOCK_DEVICE: Option<Arc<dyn BlockDevice>> = None;
-
-#[deny(dead_code)]
-pub fn init() {
-    virtio_blk::init();
-    let block_device: Arc<dyn BlockDevice> = Arc::new(BlockDeviceImpl::new());
-    unsafe {
-        BLOCK_DEVICE = Some(block_device.clone());
-    };
-}
+pub static BLOCK_DEVICE: UpSafeLazyCell<Arc<dyn BlockDevice>> = unsafe {
+    UpSafeLazyCell::new(|| {
+        virtio_blk::init();
+        Arc::new(BlockDeviceImpl::new())
+    })
+};
 
 #[allow(unused)]
 pub fn block_device_test() {
-    let block_device = unsafe { BLOCK_DEVICE.as_ref() }.unwrap().clone();
+    let block_device = BLOCK_DEVICE.clone();
     let mut write_buffer = [0u8; 512];
     let mut read_buffer = [0u8; 512];
     for i in 0..512 {

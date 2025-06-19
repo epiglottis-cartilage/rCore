@@ -7,11 +7,12 @@ edition = "2024"
 sbi-rt = { version = "0.0.3", features = ["legacy"] }
 # lazy_static = { version = "1.5.0", features = ["spin_no_std"] }
 riscv = { version = "*" }
-config = { path = "../config" }
 linked_list_allocator = "0.10.5"
 bitflags = "*"
 xmas-elf = "*"
 log = "*"
 include_bytes_aligned = "*"
-easy-fs = { path = "../easy-fs" }
 virtio-drivers = { git = "https://github.com/rcore-os/virtio-drivers", rev = "4ee80e5" }
+config = { path = "../config" }
+easy-fs = { path = "../easy-fs" }
+uniprocessor = { path = "../uniprocessor" }

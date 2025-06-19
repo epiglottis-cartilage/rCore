@@ -49,7 +49,6 @@ fn main() -> std::io::Result<()> {
         f.set_len(16 * 2048 * 512).unwrap();
         f
     })));
-    easy_fs::init();
     // 16MiB, at most 4095 files
     let efs = EasyFileSystem::create(block_file, 16 * 2048, 1);
     let root_inode = Arc::new(EasyFileSystem::root_inode(&efs));

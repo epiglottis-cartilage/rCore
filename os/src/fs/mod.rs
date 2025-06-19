@@ -20,9 +20,3 @@ pub use cfg::OpenFlag;
 pub use inode::{list_apps, open_file};
 pub use pipe::make_pipe;
 pub use stdio::{Stderr, Stdin, Stdout};
-
-#[deny(dead_code)]
-pub fn init() {
-    easy_fs::init();
-    inode::init();
-}

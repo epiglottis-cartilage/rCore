@@ -7,9 +7,9 @@
 
 use super::File;
 use super::cfg::OpenFlag;
-use crate::drivers::BLOCK_DEVICE;
 use crate::memory::UserBuffer;
 use crate::sync::UpSafeCell;
+use crate::{drivers::BLOCK_DEVICE, sync::UpSafeLazyCell};
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use easy_fs::{EasyFileSystem, Inode};
@@ -52,20 +52,17 @@ impl OSInode {
     }
 }
 
-pub static mut ROOT_INODE: Option<Arc<Inode>> = None;
+pub static ROOT_INODE: UpSafeLazyCell<Arc<Inode>> = unsafe {
+    UpSafeLazyCell::new(|| {
+        let efs = EasyFileSystem::open(BLOCK_DEVICE.clone());
+        Arc::new(EasyFileSystem::root_inode(&efs))
+    })
+};
 
-#[deny(dead_code)]
-pub fn init() {
-    let efs = EasyFileSystem::open(unsafe { BLOCK_DEVICE.as_ref() }.unwrap().clone());
-    let root_inode = Arc::new(EasyFileSystem::root_inode(&efs));
-    unsafe {
-        ROOT_INODE = Some(root_inode.clone());
-    };
-}
 /// List all files in the filesystems
 pub fn list_apps() {
     println!("/**** APPS ****");
-    for app in unsafe { ROOT_INODE.as_ref() }.unwrap().ls() {
+    for app in ROOT_INODE.ls() {
         println!("{}", app);
     }
     println!("**************/");
@@ -75,27 +72,23 @@ pub fn list_apps() {
 pub fn open_file(name: &str, flags: OpenFlag) -> Option<Arc<OSInode>> {
     let (readable, writable) = flags.read_write();
     if flags.contains(OpenFlag::CREATE) {
-        if let Some(inode) = unsafe { ROOT_INODE.as_ref() }.unwrap().find(name) {
+        if let Some(inode) = ROOT_INODE.find(name) {
             // clear size
             inode.clear();
             Some(Arc::new(OSInode::new(readable, writable, inode)))
         } else {
             // create file
-            unsafe { ROOT_INODE.as_ref() }
-                .unwrap()
+            ROOT_INODE
                 .create(name)
                 .map(|inode| Arc::new(OSInode::new(readable, writable, inode)))
         }
     } else {
-        unsafe { ROOT_INODE.as_ref() }
-            .unwrap()
-            .find(name)
-            .map(|inode| {
-                if flags.contains(OpenFlag::TRUNC) {
-                    inode.clear();
-                }
-                Arc::new(OSInode::new(readable, writable, inode))
-            })
+        ROOT_INODE.find(name).map(|inode| {
+            if flags.contains(OpenFlag::TRUNC) {
+                inode.clear();
+            }
+            Arc::new(OSInode::new(readable, writable, inode))
+        })
     }
 }
 
