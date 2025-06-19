@@ -5,7 +5,7 @@ use super::cfg::{SignalActions, SignalFlags, SignalID, TRAP_CONTEXT};
 use super::{KernelStack, PidHandle, pid_alloc};
 use crate::fs::{Stderr, Stdin, Stdout};
 use crate::memory::{self, KERNEL_SPACE, MemorySet, PageTableDirect, PhysPageNum, VirtAddr};
-use crate::sync::UPSafeCell;
+use crate::sync::UpSafeCell;
 use crate::trap::{TrapContext, trap_handler};
 use alloc::sync::{Arc, Weak};
 use alloc::{vec, vec::Vec};
@@ -16,7 +16,7 @@ pub struct TaskControlBlock {
     pub pid: PidHandle,
     pub kernel_stack: KernelStack,
     // mutable
-    inner: UPSafeCell<TaskControlBlockInner>,
+    inner: UpSafeCell<TaskControlBlockInner>,
 }
 
 pub struct TaskControlBlockInner {
@@ -75,7 +75,7 @@ impl TaskControlBlockInner {
 }
 impl TaskControlBlock {
     pub fn inner_exclusive_access(&self) -> RefMut<'_, TaskControlBlockInner> {
-        self.inner.exclusive_access()
+        self.inner.borrow_mut()
     }
     pub fn new(elf_data: &[u8]) -> Self {
         // memory_set with elf program headers/trampoline/trap context/user stack
@@ -93,7 +93,7 @@ impl TaskControlBlock {
             pid: pid_handle,
             kernel_stack,
             inner: unsafe {
-                UPSafeCell::new(TaskControlBlockInner {
+                UpSafeCell::new(TaskControlBlockInner {
                     trap_cx_ppn,
                     base_size: user_sp,
                     task_cx: TaskContext::goto_trap_return(kernel_stack_top),
@@ -124,7 +124,7 @@ impl TaskControlBlock {
         let trap_cx = task_control_block.inner_exclusive_access().get_trap_cx();
         let kernel_ppn: PhysPageNum = unsafe { KERNEL_SPACE.as_ref() }
             .unwrap()
-            .exclusive_access()
+            .borrow_mut()
             .token()
             .into();
         *trap_cx = TrapContext::app_init_context(
@@ -209,7 +209,7 @@ impl TaskControlBlock {
             user_sp,
             unsafe { KERNEL_SPACE.as_ref() }
                 .unwrap()
-                .exclusive_access()
+                .borrow_mut()
                 .token(),
             self.kernel_stack.get_top(),
             trap_handler as usize,
@@ -240,7 +240,7 @@ impl TaskControlBlock {
             pid: pid_handle,
             kernel_stack,
             inner: unsafe {
-                UPSafeCell::new(TaskControlBlockInner {
+                UpSafeCell::new(TaskControlBlockInner {
                     trap_cx_ppn,
                     base_size: parent_inner.base_size,
                     task_cx: TaskContext::goto_trap_return(kernel_stack_top),

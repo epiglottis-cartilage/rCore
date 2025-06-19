@@ -32,6 +32,6 @@ pub fn init() {
     memory_set::init();
     unsafe { KERNEL_SPACE.as_ref() }
         .unwrap()
-        .exclusive_access()
+        .borrow_mut()
         .activate();
 }

@@ -1,5 +1,5 @@
 use crate::memory::{KERNEL_SPACE, MapPermission, VirtAddr};
-use crate::sync::UPSafeCell;
+use crate::sync::UpSafeCell;
 use alloc::vec::Vec;
 use core::ptr::addr_of;
 // use lazy_static::lazy_static;
@@ -41,15 +41,15 @@ impl Drop for PidHandle {
     fn drop(&mut self) {
         unsafe { PID_ALLOCATOR.as_ref() }
             .unwrap()
-            .exclusive_access()
+            .borrow_mut()
             .dealloc(self.0);
     }
 }
-static mut PID_ALLOCATOR: Option<UPSafeCell<PidAllocator>> = None;
+static mut PID_ALLOCATOR: Option<UpSafeCell<PidAllocator>> = None;
 #[deny(unused)]
 /// Initialize the PID allocator
 pub fn init() {
-    let pid_allocator = unsafe { UPSafeCell::new(PidAllocator::new()) };
+    let pid_allocator = unsafe { UpSafeCell::new(PidAllocator::new()) };
     log::debug!("init PID_ALLOCATOR at {:#p}", addr_of!(PID_ALLOCATOR));
     unsafe {
         PID_ALLOCATOR = Some(pid_allocator);
@@ -59,7 +59,7 @@ pub fn init() {
 pub fn pid_alloc() -> PidHandle {
     unsafe { PID_ALLOCATOR.as_ref() }
         .unwrap()
-        .exclusive_access()
+        .borrow_mut()
         .alloc()
 }
 
@@ -83,7 +83,7 @@ impl KernelStack {
         let (kernel_stack_bottom, kernel_stack_top) = kernel_stack_position(pid);
         unsafe { KERNEL_SPACE.as_ref() }
             .unwrap()
-            .exclusive_access()
+            .borrow_mut()
             .insert_framed_area(
                 kernel_stack_bottom.into(),
                 kernel_stack_top.into(),
@@ -117,7 +117,7 @@ impl Drop for KernelStack {
         let kernel_stack_bottom_va: VirtAddr = kernel_stack_bottom.into();
         unsafe { KERNEL_SPACE.as_ref() }
             .unwrap()
-            .exclusive_access()
+            .borrow_mut()
             .pop_area_with_start_vpn(kernel_stack_bottom_va.into());
     }
 }

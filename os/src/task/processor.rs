@@ -3,7 +3,7 @@ use super::switch;
 use super::{TaskContext, TaskControlBlock};
 use super::{TaskStatus, fetch_task};
 use crate::memory::PageTableDirect;
-use crate::sync::UPSafeCell;
+use crate::sync::UpSafeCell;
 use crate::trap::TrapContext;
 use alloc::sync::Arc;
 use core::ptr::addr_of;
@@ -38,12 +38,12 @@ impl Processor {
     }
 }
 
-static mut PROCESSOR: Option<UPSafeCell<Processor>> = None;
+static mut PROCESSOR: Option<UpSafeCell<Processor>> = None;
 
 #[deny(dead_code)]
 ///Initialize the processor
 pub fn init() {
-    let processor = unsafe { UPSafeCell::new(Processor::new()) };
+    let processor = unsafe { UpSafeCell::new(Processor::new()) };
     log::debug!("init PROCESSOR at {:#p}", addr_of!(PROCESSOR));
     unsafe {
         PROCESSOR = Some(processor);
@@ -54,7 +54,7 @@ pub fn init() {
 ///Loop `fetch_task` to get the process that needs to run, and switch the process through `__switch`
 pub fn run_tasks() {
     loop {
-        let mut processor = unsafe { PROCESSOR.as_ref() }.unwrap().exclusive_access();
+        let mut processor = unsafe { PROCESSOR.as_ref() }.unwrap().borrow_mut();
         if let Some(task) = fetch_task() {
             let idle_task_cx_ptr = processor.get_idle_task_cx_ptr();
             // access coming task TCB exclusively
@@ -74,14 +74,14 @@ pub fn run_tasks() {
 pub fn take_current_task() -> Option<Arc<TaskControlBlock>> {
     unsafe { PROCESSOR.as_ref() }
         .unwrap()
-        .exclusive_access()
+        .borrow_mut()
         .take_current()
 }
 ///Get running task
 pub fn current_task() -> Option<Arc<TaskControlBlock>> {
     unsafe { PROCESSOR.as_ref() }
         .unwrap()
-        .exclusive_access()
+        .borrow_mut()
         .current()
 }
 ///Get token of the address space of current task
@@ -99,7 +99,7 @@ pub fn current_trap_cx() -> &'static mut TrapContext {
 }
 ///Return to idle control flow for new scheduling
 pub fn schedule(switched_task_cx_ptr: *mut TaskContext) {
-    let mut processor = unsafe { PROCESSOR.as_ref() }.unwrap().exclusive_access();
+    let mut processor = unsafe { PROCESSOR.as_ref() }.unwrap().borrow_mut();
     let idle_task_cx_ptr = processor.get_idle_task_cx_ptr();
     drop(processor);
     unsafe { switch(switched_task_cx_ptr, idle_task_cx_ptr) };

@@ -2,7 +2,7 @@
 //! controls all the frames in the operating system.
 
 use super::{PhysAddr, PhysPageNum};
-use crate::sync::UPSafeCell;
+use crate::sync::UpSafeCell;
 use alloc::vec::Vec;
 use core::fmt::{self, Debug, Formatter};
 
@@ -84,15 +84,15 @@ impl FrameAllocator for StackFrameAllocator {
 }
 
 // type FrameAllocatorImpl = StackFrameAllocator;
-static mut FRAME_ALLOCATOR: Option<UPSafeCell<StackFrameAllocator>> = None;
+static mut FRAME_ALLOCATOR: Option<UpSafeCell<StackFrameAllocator>> = None;
 #[deny(unused)]
 /// initiate the frame allocator using `ekernel` and `MEMORY_END`
 pub fn init() {
-    let frame_allocator: UPSafeCell<StackFrameAllocator> =
-        unsafe { UPSafeCell::new(StackFrameAllocator::new()) };
+    let frame_allocator: UpSafeCell<StackFrameAllocator> =
+        unsafe { UpSafeCell::new(StackFrameAllocator::new()) };
     use super::cfg::MEMORY_END;
     use crate::label::ekernel;
-    frame_allocator.exclusive_access().init(
+    frame_allocator.borrow_mut().init(
         PhysAddr::from(ekernel as usize).ceil(),
         PhysAddr::from(MEMORY_END).floor(),
     );
@@ -105,7 +105,7 @@ pub fn init() {
 pub fn frame_alloc() -> Option<FrameTracker> {
     unsafe { FRAME_ALLOCATOR.as_ref() }
         .unwrap()
-        .exclusive_access()
+        .borrow_mut()
         .alloc()
         .map(FrameTracker::new)
 }
@@ -114,7 +114,7 @@ pub fn frame_alloc() -> Option<FrameTracker> {
 pub fn frame_dealloc(ppn: PhysPageNum) {
     unsafe { FRAME_ALLOCATOR.as_ref() }
         .unwrap()
-        .exclusive_access()
+        .borrow_mut()
         .dealloc(ppn);
 }
 

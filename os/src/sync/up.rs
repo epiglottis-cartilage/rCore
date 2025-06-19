@@ -4,26 +4,23 @@ use core::cell::{RefCell, RefMut};
 /// able to access it without any `unsafe`.
 ///
 /// We should only use it in uniprocessor.
-///
-/// In order to get mutable reference of inner data, call
-/// `exclusive_access`.
-pub struct UPSafeCell<T> {
+pub struct UpSafeCell<T>(
     /// inner data
-    inner: RefCell<T>,
-}
+    RefCell<T>,
+);
 
-unsafe impl<T> Sync for UPSafeCell<T> {}
+unsafe impl<T> Sync for UpSafeCell<T> {}
 
-impl<T> UPSafeCell<T> {
+impl<T> UpSafeCell<T> {
     /// User is responsible to guarantee that inner struct is only used in
     /// uniprocessor.
     pub unsafe fn new(value: T) -> Self {
-        Self {
-            inner: RefCell::new(value),
-        }
+        Self(RefCell::new(value))
     }
-    /// Panic if the data has been borrowed.
-    pub fn exclusive_access(&self) -> RefMut<'_, T> {
-        self.inner.borrow_mut()
+}
+impl<T> core::ops::Deref for UpSafeCell<T> {
+    type Target = RefCell<T>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }

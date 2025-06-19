@@ -1,6 +1,6 @@
 //!Implementation of [`TaskManager`]
 use super::TaskControlBlock;
-use crate::sync::UPSafeCell;
+use crate::sync::UpSafeCell;
 use alloc::collections::VecDeque;
 use alloc::collections::btree_map::BTreeMap;
 use alloc::sync::Arc;
@@ -28,17 +28,17 @@ impl TaskManager {
     }
 }
 
-static mut TASK_MANAGER: Option<UPSafeCell<TaskManager>> = None;
-static mut PID2TCB: Option<UPSafeCell<BTreeMap<usize, Arc<TaskControlBlock>>>> = None;
+static mut TASK_MANAGER: Option<UpSafeCell<TaskManager>> = None;
+static mut PID2TCB: Option<UpSafeCell<BTreeMap<usize, Arc<TaskControlBlock>>>> = None;
 #[deny(dead_code)]
 ///Initialize the task manager
 pub fn init() {
-    let task_manager = unsafe { UPSafeCell::new(TaskManager::new()) };
+    let task_manager = unsafe { UpSafeCell::new(TaskManager::new()) };
     log::debug!("init TASK_MANAGER at {:#p}", addr_of!(TASK_MANAGER));
     unsafe {
         TASK_MANAGER = Some(task_manager);
     }
-    let pid2task = unsafe { UPSafeCell::new(BTreeMap::new()) };
+    let pid2task = unsafe { UpSafeCell::new(BTreeMap::new()) };
     log::debug!("init PID2TASK at {:#p}", addr_of!(PID2TCB));
     unsafe {
         PID2TCB = Some(pid2task);
@@ -48,27 +48,27 @@ pub fn init() {
 pub fn add_task(task: Arc<TaskControlBlock>) {
     unsafe { PID2TCB.as_ref() }
         .unwrap()
-        .exclusive_access()
+        .borrow_mut()
         .insert(task.getpid(), Arc::clone(&task));
     unsafe { TASK_MANAGER.as_ref() }
         .unwrap()
-        .exclusive_access()
+        .borrow_mut()
         .add(task);
 }
 ///Interface offered to pop the first task
 pub fn fetch_task() -> Option<Arc<TaskControlBlock>> {
     unsafe { TASK_MANAGER.as_ref() }
         .unwrap()
-        .exclusive_access()
+        .borrow_mut()
         .fetch()
 }
 pub fn pid2task(pid: usize) -> Option<Arc<TaskControlBlock>> {
-    let map = unsafe { PID2TCB.as_ref() }.unwrap().exclusive_access();
+    let map = unsafe { PID2TCB.as_ref() }.unwrap().borrow_mut();
     map.get(&pid).map(Arc::clone)
 }
 
 pub fn remove_from_pid2task(pid: usize) {
-    let mut map = unsafe { PID2TCB.as_ref() }.unwrap().exclusive_access();
+    let mut map = unsafe { PID2TCB.as_ref() }.unwrap().borrow_mut();
     if map.remove(&pid).is_none() {
         panic!("cannot find pid {} in pid2task!", pid);
     }

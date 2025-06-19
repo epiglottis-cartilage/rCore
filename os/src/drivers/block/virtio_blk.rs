@@ -3,33 +3,33 @@ use crate::memory::{
     FrameTracker, PageTable, PhysAddr, PhysPageNum, VirtAddr, frame_alloc, frame_dealloc,
     kernel_token,
 };
-use crate::sync::UPSafeCell;
+use crate::sync::UpSafeCell;
 use alloc::vec::Vec;
 use virtio_drivers::{Hal, VirtIOBlk, VirtIOHeader};
 
 #[allow(unused)]
 const VIRTIO0: usize = 0x10001000;
 
-pub struct VirtIOBlock(UPSafeCell<VirtIOBlk<'static, VirtioHal>>);
+pub struct VirtIOBlock(UpSafeCell<VirtIOBlk<'static, VirtioHal>>);
 
-static mut QUEUE_FRAMES: Option<UPSafeCell<Vec<FrameTracker>>> = None;
+static mut QUEUE_FRAMES: Option<UpSafeCell<Vec<FrameTracker>>> = None;
 
 #[deny(dead_code)]
 pub fn init() {
     unsafe {
-        QUEUE_FRAMES = Some(UPSafeCell::new(Vec::new()));
+        QUEUE_FRAMES = Some(UpSafeCell::new(Vec::new()));
     }
 }
 impl BlockDevice for VirtIOBlock {
     fn read_block(&self, block_id: usize, buf: &mut [u8]) {
         self.0
-            .exclusive_access()
+            .borrow_mut()
             .read_block(block_id, buf)
             .expect("Error when reading VirtIOBlk");
     }
     fn write_block(&self, block_id: usize, buf: &[u8]) {
         self.0
-            .exclusive_access()
+            .borrow_mut()
             .write_block(block_id, buf)
             .expect("Error when writing VirtIOBlk");
     }
@@ -39,7 +39,7 @@ impl VirtIOBlock {
     #[allow(unused)]
     pub fn new() -> Self {
         unsafe {
-            Self(UPSafeCell::new(
+            Self(UpSafeCell::new(
                 VirtIOBlk::<VirtioHal>::new(&mut *(VIRTIO0 as *mut VirtIOHeader)).unwrap(),
             ))
         }
@@ -59,7 +59,7 @@ impl Hal for VirtioHal {
             assert_eq!(frame.ppn.0, ppn_base.0 + i);
             unsafe { QUEUE_FRAMES.as_ref() }
                 .unwrap()
-                .exclusive_access()
+                .borrow_mut()
                 .push(frame);
         }
         let pa: PhysAddr = ppn_base.into();
