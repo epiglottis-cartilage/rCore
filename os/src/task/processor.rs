@@ -66,7 +66,7 @@ pub fn run_tasks() {
             processor.current = Some(task);
             // release processor manually
             drop(processor);
-            switch(idle_task_cx_ptr, next_task_cx_ptr);
+            unsafe { switch(idle_task_cx_ptr, next_task_cx_ptr) };
         }
     }
 }
@@ -102,5 +102,5 @@ pub fn schedule(switched_task_cx_ptr: *mut TaskContext) {
     let mut processor = unsafe { PROCESSOR.as_ref() }.unwrap().exclusive_access();
     let idle_task_cx_ptr = processor.get_idle_task_cx_ptr();
     drop(processor);
-    switch(switched_task_cx_ptr, idle_task_cx_ptr);
+    unsafe { switch(switched_task_cx_ptr, idle_task_cx_ptr) };
 }
