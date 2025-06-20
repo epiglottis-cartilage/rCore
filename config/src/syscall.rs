@@ -19,6 +19,7 @@ pub enum SyscallID {
     Fork = 220,
     Exec = 221,
     WaitPid = 260,
+    PowerOff = 114514,
 }
 // impl From<usize> for SyscallID {
 //     fn from(value: usize) -> Self {

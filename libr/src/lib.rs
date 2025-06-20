@@ -136,3 +136,8 @@ pub fn sigprocmask(mask: u32) -> isize {
 pub fn sigreturn() -> isize {
     sys_sigreturn()
 }
+
+pub fn poweroff() -> ! {
+    sys_poweroff();
+    unreachable!()
+}

@@ -35,6 +35,7 @@ members = [
     "user/priv_inst",
     "user/priv_csr",
     "uniprocessor",
+    "user/poweroff",
 ]
 resolver = "3"
 
