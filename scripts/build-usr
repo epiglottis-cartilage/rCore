@@ -18,4 +18,4 @@ members.sort()
 print("Find members:", members)
 for i, member in enumerate(members):
     print(f"   Building {member}")
-    os.system(f"cd user/{member};cargo build --release -p {member};cd ..")
+    os.system(f"cargo build --release -p {member} --config user/.cargo/config.toml")

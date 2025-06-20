@@ -1,4 +1,2 @@
 #!/bin/sh
-
-cd easy-fs-fuse 
-cargo run --release -- ../Cargo.toml  ../target/riscv64gc-unknown-none-elf/release/
+cargo run --release -p easy-fs-fuse  -- ./Cargo.toml  ./target/riscv64gc-unknown-none-elf/release/

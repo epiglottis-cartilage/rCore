@@ -1,8 +1,6 @@
 #!/bin/sh
 
-cd os
-cargo build --release
-cd ..
+cargo build --release -p os --config os/.cargo/config.toml
 
 rust-objcopy --strip-all target/riscv64gc-unknown-none-elf/release/os \
  -O binary target/riscv64gc-unknown-none-elf/release/os.bin
