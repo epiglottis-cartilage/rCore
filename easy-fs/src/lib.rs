@@ -16,8 +16,3 @@ pub use efs::EasyFileSystem;
 use layout::*;
 pub use vfs::Inode;
 const DIRENT_SZ: usize = core::mem::size_of::<DirEntry>();
-
-#[deny(dead_code)]
-pub fn init() {
-    block_cache::init();
-}

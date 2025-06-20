@@ -7,7 +7,11 @@ pub mod console;
 mod lang_items;
 mod syscall;
 
-pub use config::fs::OpenFlag;
+pub use config::{
+    fs::OpenFlag,
+    signal::{SignalAction, SignalID},
+    syscall::SyscallID,
+};
 use linked_list_allocator::LockedHeap;
 use syscall::*;
 
@@ -23,24 +27,36 @@ pub fn handle_alloc_error(layout: core::alloc::Layout) -> ! {
     panic!("Heap allocation error, layout = {:?}", layout);
 }
 unsafe extern "Rust" {
-    safe fn main() -> i32;
+    safe fn main(args: &[&[u8]]) -> i32;
 }
 
 #[unsafe(no_mangle)]
 #[unsafe(link_section = ".text.entry")]
-pub extern "C" fn _start() -> ! {
+pub extern "C" fn _start(args: *const &[&[u8]]) -> ! {
     unsafe {
         #[allow(static_mut_refs)]
         HEAP.lock().init(HEAP_SPACE.as_ptr() as _, USER_HEAP_SIZE);
     }
-    exit(main());
+    exit(main(
+        unsafe { args.as_ref() }.map(|arg| *arg).unwrap_or(&[]),
+    ));
 }
-
+pub fn dup(fd: usize) -> isize {
+    sys_dup(fd)
+}
 pub fn open(name: &str, flags: OpenFlag) -> isize {
     sys_open(&name, flags)
 }
 pub fn close(fd: usize) -> isize {
     sys_close(fd)
+}
+pub fn pipe() -> Option<(usize, usize)> {
+    let mut pipefd = (0, 0);
+    match sys_pipe(&mut pipefd.0, &mut pipefd.1) {
+        0 => Some(pipefd),
+        -1 => None,
+        _ => panic!("unexpected return value: {}", -1),
+    }
 }
 pub fn read(fd: usize, buf: &mut [u8]) -> isize {
     sys_read(fd, buf)
@@ -96,4 +112,32 @@ pub fn sleep(period_ms: usize) {
     while get_time() < start + period_ms {
         r#yield();
     }
+}
+pub fn kill(pid: usize, signum: SignalID) -> isize {
+    sys_kill(pid, signum)
+}
+
+pub fn sigaction(
+    signum: SignalID,
+    action: Option<&SignalAction>,
+    old_action: Option<&mut SignalAction>,
+) -> isize {
+    sys_sigaction(
+        signum,
+        action.map_or(core::ptr::null(), |a| a),
+        old_action.map_or(core::ptr::null_mut(), |a| a),
+    )
+}
+
+pub fn sigprocmask(mask: u32) -> isize {
+    sys_sigprocmask(mask)
+}
+
+pub fn sigreturn() -> isize {
+    sys_sigreturn()
+}
+
+pub fn poweroff() -> ! {
+    sys_poweroff();
+    unreachable!()
 }

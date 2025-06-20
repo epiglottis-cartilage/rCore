@@ -4,13 +4,12 @@
 //!
 //! `UPSafeCell<OSInodeInner>` -> `OSInode`: for static `ROOT_INODE`,we
 //! need to wrap `OSInodeInner` into `UPSafeCell`
-use core::ptr::addr_of_mut;
 
 use super::File;
 use super::cfg::OpenFlag;
-use crate::drivers::BLOCK_DEVICE;
 use crate::memory::UserBuffer;
-use crate::sync::UPSafeCell;
+use crate::sync::UpSafeCell;
+use crate::{drivers::BLOCK_DEVICE, sync::UpSafeLazyCell};
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use easy_fs::{EasyFileSystem, Inode};
@@ -19,7 +18,7 @@ use easy_fs::{EasyFileSystem, Inode};
 pub struct OSInode {
     readable: bool,
     writable: bool,
-    inner: UPSafeCell<OSInodeInner>,
+    inner: UpSafeCell<OSInodeInner>,
 }
 /// The OS inode inner in 'UPSafeCell'
 pub struct OSInodeInner {
@@ -33,12 +32,12 @@ impl OSInode {
         Self {
             readable,
             writable,
-            inner: unsafe { UPSafeCell::new(OSInodeInner { offset: 0, inode }) },
+            inner: unsafe { UpSafeCell::new(OSInodeInner { offset: 0, inode }) },
         }
     }
     /// Read all data inside a inode into vector
     pub fn read_all(&self) -> Vec<u8> {
-        let mut inner = self.inner.exclusive_access();
+        let mut inner = self.inner.borrow_mut();
         let mut buffer = [0u8; 512];
         let mut v: Vec<u8> = Vec::new();
         loop {
@@ -53,20 +52,17 @@ impl OSInode {
     }
 }
 
-pub static mut ROOT_INODE: Option<Arc<Inode>> = None;
+pub static ROOT_INODE: UpSafeLazyCell<Arc<Inode>> = unsafe {
+    UpSafeLazyCell::new(|| {
+        let efs = EasyFileSystem::open(BLOCK_DEVICE.clone());
+        Arc::new(EasyFileSystem::root_inode(&efs))
+    })
+};
 
-#[deny(dead_code)]
-pub fn init() {
-    let efs = EasyFileSystem::open(unsafe { BLOCK_DEVICE.as_ref() }.unwrap().clone());
-    let root_inode = Arc::new(EasyFileSystem::root_inode(&efs));
-    unsafe {
-        core::ptr::write_volatile(addr_of_mut!(ROOT_INODE), Some(root_inode.clone()));
-    };
-}
 /// List all files in the filesystems
 pub fn list_apps() {
     println!("/**** APPS ****");
-    for app in unsafe { ROOT_INODE.as_ref() }.unwrap().ls() {
+    for app in ROOT_INODE.ls() {
         println!("{}", app);
     }
     println!("**************/");
@@ -76,27 +72,23 @@ pub fn list_apps() {
 pub fn open_file(name: &str, flags: OpenFlag) -> Option<Arc<OSInode>> {
     let (readable, writable) = flags.read_write();
     if flags.contains(OpenFlag::CREATE) {
-        if let Some(inode) = unsafe { ROOT_INODE.as_ref() }.unwrap().find(name) {
+        if let Some(inode) = ROOT_INODE.find(name) {
             // clear size
             inode.clear();
             Some(Arc::new(OSInode::new(readable, writable, inode)))
         } else {
             // create file
-            unsafe { ROOT_INODE.as_ref() }
-                .unwrap()
+            ROOT_INODE
                 .create(name)
                 .map(|inode| Arc::new(OSInode::new(readable, writable, inode)))
         }
     } else {
-        unsafe { ROOT_INODE.as_ref() }
-            .unwrap()
-            .find(name)
-            .map(|inode| {
-                if flags.contains(OpenFlag::TRUNC) {
-                    inode.clear();
-                }
-                Arc::new(OSInode::new(readable, writable, inode))
-            })
+        ROOT_INODE.find(name).map(|inode| {
+            if flags.contains(OpenFlag::TRUNC) {
+                inode.clear();
+            }
+            Arc::new(OSInode::new(readable, writable, inode))
+        })
     }
 }
 
@@ -108,7 +100,7 @@ impl File for OSInode {
         self.writable
     }
     fn read(&self, mut buf: UserBuffer) -> usize {
-        let mut inner = self.inner.exclusive_access();
+        let mut inner = self.inner.borrow_mut();
         let mut total_read_size = 0usize;
         for slice in buf.0.iter_mut() {
             let read_size = inner.inode.read_at(inner.offset, *slice);
@@ -121,7 +113,7 @@ impl File for OSInode {
         total_read_size
     }
     fn write(&self, buf: UserBuffer) -> usize {
-        let mut inner = self.inner.exclusive_access();
+        let mut inner = self.inner.borrow_mut();
         let mut total_write_size = 0usize;
         for slice in buf.0.iter() {
             let write_size = inner.inode.write_at(inner.offset, *slice);

@@ -20,7 +20,22 @@ members = [
     "user/forktest",
     "user/forktest2",
     "user/huge_write",
-    "user/matrix", "user/forktest_simple", "user/sleep_simple", "user/usertests", "user/yield_test", "user/hello_world",
+    "user/matrix",
+    "user/forktest_simple",
+    "user/sleep_simple",
+    "user/usertests",
+    "user/yield_test",
+    "user/hello_world",
+    "user/cat",
+    "user/args",
+    "user/echo",
+    "user/pipetest",
+    "user/pipe_large_test",
+    "user/sig_sample",
+    "user/priv_inst",
+    "user/priv_csr",
+    "uniprocessor",
+    "user/poweroff",
 ]
 resolver = "3"
 

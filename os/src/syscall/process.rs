@@ -1,11 +1,11 @@
 //! App management syscalls
-use alloc::sync::Arc;
-
+use super::cfg::{SignalAction, SignalFlags};
 use crate::{
     fs, memory,
     task::{self, current_task},
     timer,
 };
+use alloc::{borrow::ToOwned, string::String, sync::Arc};
 
 /// task exits and submit an exit code
 pub fn sys_exit(exit_code: i32) -> ! {
@@ -51,22 +51,16 @@ pub fn sys_fork() -> isize {
 
 pub fn sys_exec(path: *const *const str, args: *const *const [*const str]) -> isize {
     let token = task::current_user_token();
-    let path = if let Some(path) = memory::translate_str(token, path) {
+    let path = if let Ok(path) = String::from_utf8(memory::translate_bytes(token, path)) {
         path
     } else {
         return -1;
     };
-
-    let args = if let Some(args) = memory::translate_str_slice(token, args) {
-        args
-    } else {
-        return -1;
-    };
-
+    let args = memory::translate_bytes_slice(token, args);
     if let Some(app_inode) = fs::open_file(path.as_str(), crate::fs::OpenFlag::RDONLY) {
         let all_data = app_inode.read_all();
         let task = current_task().unwrap();
-        task.exec(all_data.as_slice());
+        task.exec(all_data.as_slice(), args);
         0
     } else {
         -1
@@ -106,5 +100,75 @@ pub fn sys_waitpid(pid: isize, exit_code_ptr: *mut i32) -> isize {
         found_pid as isize
     } else {
         -2
+    }
+}
+pub fn sys_kill(pid: usize, signum: i32) -> isize {
+    if let Some(task) = task::pid2task(pid) {
+        if let Some(flag) = SignalFlags::from_bits(1 << signum) {
+            // insert the signal if legal
+            let mut task_ref = task.inner_exclusive_access();
+            if task_ref.signals.contains(flag) {
+                return -1;
+            }
+            task_ref.signals.insert(flag);
+            0
+        } else {
+            -1
+        }
+    } else {
+        -1
+    }
+}
+fn check_sigaction_error(signal: SignalFlags, action: usize, old_action: usize) -> bool {
+    action == 0 || old_action == 0 || signal == SignalFlags::KILL || signal == SignalFlags::STOP
+}
+pub fn sys_sigaction(
+    signum: u64,
+    action: *const SignalAction,
+    old_action: *mut SignalAction,
+) -> isize {
+    let token = task::current_user_token();
+    let task = current_task().unwrap();
+    let mut inner = task.inner_exclusive_access();
+    // if signum as usize > MAX_SIG {
+    //     return -1;
+    // }
+    if let Some(flag) = SignalFlags::from_bits(1 << signum) {
+        if check_sigaction_error(flag, action as usize, old_action as usize) {
+            return -1;
+        }
+        let prev_action = inner.signal_actions.table[signum as usize].clone();
+        *memory::translate_ref_mut(token, old_action) = prev_action;
+        inner.signal_actions.table[signum as usize] = memory::translate_ref(token, action).clone();
+        0
+    } else {
+        -1
+    }
+}
+pub fn sys_sigprocmask(mask: u32) -> isize {
+    if let Some(task) = current_task() {
+        let mut inner = task.inner_exclusive_access();
+        let old_mask = inner.signal_mask;
+        if let Some(flag) = SignalFlags::from_bits(mask) {
+            inner.signal_mask = flag;
+            return old_mask.bits() as isize;
+        }
+    }
+    -1
+}
+
+pub fn sys_sigreturn() -> isize {
+    if let Some(task) = current_task() {
+        let mut inner = task.inner_exclusive_access();
+        inner.handling_sig = None;
+        // restore the trap context
+        let trap_ctx = inner.get_trap_cx();
+        *trap_ctx = inner.trap_ctx_backup.to_owned().unwrap();
+        // Here we return the value of a0 in the trap_ctx,
+        // otherwise it will be overwritten after we trap
+        // back to the original execution of the application.
+        trap_ctx.x[10] as isize
+    } else {
+        -1
     }
 }

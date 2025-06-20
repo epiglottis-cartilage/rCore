@@ -52,3 +52,5 @@ impl OpenFlag {
         }
     }
 }
+
+pub const PIPE_BUFFER_SIZE: usize = 32;

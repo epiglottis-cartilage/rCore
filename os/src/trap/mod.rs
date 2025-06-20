@@ -14,11 +14,13 @@
 
 mod context;
 
-use crate::memory::PageTableDirect;
-use crate::syscall::syscall;
 use crate::task;
+use crate::{syscall::syscall, timer};
 
-use config::memory as cfg;
+mod cfg {
+    pub use config::memory::*;
+    pub use config::signal::*;
+}
 use core::arch::{asm, global_asm};
 use riscv::{
     interrupt::{Exception, Interrupt},
@@ -67,7 +69,7 @@ fn trap_from_kernel() -> ! {
     let scause = scause::read(); // get trap cause
     let stval = stval::read(); // get extra value
     if let Ok(reason) = scause.cause().try_into::<Interrupt, Exception>() {
-        log::error!("trap from kerne {:?}", reason);
+        panic!("trap from kerne {:?}", reason);
     } else {
         panic!(
             "Unsupported trap {:?}, stval = {:#x}!",
@@ -75,7 +77,6 @@ fn trap_from_kernel() -> ! {
             stval
         );
     }
-    panic!("a trap from kernel!");
 }
 
 /// handle an interrupt, exception, or system call from user space
@@ -91,7 +92,7 @@ pub(crate) fn trap_handler() -> ! {
                 Interrupt::SupervisorSoft => todo!(),
                 Interrupt::MachineSoft => todo!(),
                 Interrupt::SupervisorTimer => {
-                    crate::timer::set_next_trigger();
+                    timer::set_next_trigger();
                     task::suspend_current_and_run_next();
                 }
                 Interrupt::MachineTimer => todo!(),
@@ -100,8 +101,8 @@ pub(crate) fn trap_handler() -> ! {
             },
             Trap::Exception(e) => match e {
                 Exception::IllegalInstruction => {
-                    println!("[kernel] IllegalInstruction in application, kernel killed it.");
-                    task::exit_current_and_run_next(-3);
+                    log::error!("[kernel] IllegalInstruction in application.");
+                    task::current_add_signal(cfg::SignalID::ILL);
                 }
                 Exception::Breakpoint => todo!(),
                 exception @ (Exception::LoadFault
@@ -112,14 +113,13 @@ pub(crate) fn trap_handler() -> ! {
                 | Exception::StoreMisaligned
                 | Exception::InstructionMisaligned
                 | Exception::InstructionFault) => {
-                    println!(
-                        "[kernel] {:?} in application, bad addr = {:#x}, bad instruction = {:#x}, kernel killed it.",
+                    log::error!(
+                        "[kernel] {:?} in application, bad addr = {:#x}, bad instruction = {:#x}.",
                         exception,
                         stval,
                         task::current_trap_cx().sepc,
                     );
-                    // page fault exit code
-                    task::exit_current_and_run_next(-2);
+                    task::current_add_signal(cfg::SignalID::SEGV);
                 }
                 Exception::UserEnvCall => {
                     cx.sepc += 4;
@@ -139,6 +139,15 @@ pub(crate) fn trap_handler() -> ! {
             scause.cause(),
             stval
         );
+    }
+    // handle signals (handle the sent signal)
+    //println!("[K] trap_handler:: handle_signals");
+    task::handle_signals();
+
+    // check error signals (if error then exit)
+    if let Some((errno, msg)) = task::check_signals_error_of_current() {
+        log::info!("[kernel] {}", msg);
+        task::exit_current_and_run_next(errno);
     }
     trap_return();
 }

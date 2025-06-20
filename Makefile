@@ -12,11 +12,11 @@ build-os:
 clean:
 	@cargo clean
 
-qemu:
+qemu: build
 	@./scripts/qemu-run
 
-qemu-debug:
+qemu-debug: build
 	@./scripts/qemu-debug
 
-debug:
+debug: build
 	@./scripts/dgb

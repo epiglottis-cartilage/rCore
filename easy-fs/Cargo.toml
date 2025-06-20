@@ -5,4 +5,5 @@ edition = "2024"
 
 [dependencies]
 config = { path = "../config" }
+uniprocessor = { path = "../uniprocessor" }
 spin = "*"

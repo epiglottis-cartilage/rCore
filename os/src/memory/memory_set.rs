@@ -5,30 +5,19 @@ use super::{FrameTracker, frame_alloc};
 use super::{PageTable, PageTableDirect, PageTableEntry, PageTableEntryFlags};
 use super::{PhysAddr, PhysPageNum, VirtAddr, VirtPageNum};
 use crate::label::*;
-use crate::sync::UPSafeCell;
+use crate::sync::{UpSafeCell, UpSafeLazyCell};
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use bitflags::bitflags;
 use core::arch::asm;
-use core::ptr::addr_of;
 
-pub static mut KERNEL_SPACE: Option<Arc<UPSafeCell<MemorySet>>> = None;
+pub static KERNEL_SPACE: UpSafeLazyCell<Arc<UpSafeCell<MemorySet>>> =
+    unsafe { UpSafeLazyCell::new(|| Arc::new(UpSafeCell::new(MemorySet::new_kernel()))) };
 
-#[deny(dead_code)]
-pub fn init() {
-    let kernel_space = Arc::new(unsafe { UPSafeCell::new(MemorySet::new_kernel()) });
-    log::trace!("init KERNEL_SPACE at {:#p}", addr_of!(KERNEL_SPACE));
-    unsafe {
-        KERNEL_SPACE = Some(kernel_space);
-    };
-}
 ///Get kernelspace root ppn
 pub fn kernel_token() -> PageTableDirect {
-    unsafe { KERNEL_SPACE.as_ref() }
-        .unwrap()
-        .exclusive_access()
-        .token()
+    KERNEL_SPACE.borrow_mut().token()
 }
 /// memory set structure, controls virtual-memory space
 pub struct MemorySet {
@@ -371,7 +360,7 @@ bitflags! {
 
 #[allow(unused)]
 pub fn remap_test() {
-    let mut kernel_space = unsafe { KERNEL_SPACE.as_ref() }.unwrap().exclusive_access();
+    let mut kernel_space = KERNEL_SPACE.borrow_mut();
     let mid_text: VirtAddr = ((stext as usize + etext as usize) / 2).into();
     let mid_rodata: VirtAddr = ((srodata as usize + erodata as usize) / 2).into();
     let mid_data: VirtAddr = ((sdata as usize + edata as usize) / 2).into();
