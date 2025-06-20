@@ -1,21 +1,41 @@
 #!/bin/python
 
 import tomllib
-import os
-
-base_address = 0x80400000
-step = 0x20000
+import subprocess
 
 res = tomllib.load(open("Cargo.toml", "rb"))
-members = []
-for member in res["workspace"]["members"]:
-    tmp = list(member.split("/"))
-    if tmp[0] == "user":
-        members.append(tmp[-1])
+members = list(
+    map(
+        lambda x: x.split("/")[-1],
+        filter(lambda x: x.startswith("user"), res["workspace"]["members"]),
+    )
+)
 
-members.sort()
-
-print("Find members:", members)
+print(
+    f"Find {len(members)} members:",
+)
+print("Building user workspace members...")
 for i, member in enumerate(members):
-    print(f"   Building {member}")
-    os.system(f"cargo build --release -p {member} --config user/.cargo/config.toml")
+    # Move one line forwawrd
+    print(f"\x1b[1A\x1b[2KBuilding {i + 1}/{len(members)}: {member}")
+    # os.system(f"cargo build --release -p {member} --config user/.cargo/config.toml")
+    res = subprocess.run(
+        [
+            "cargo",
+            "build",
+            "--release",
+            "-p",
+            member,
+            "--config",
+            "user/.cargo/config.toml",
+            "--color",
+            "always",
+        ],
+        capture_output=True,
+        shell=False,
+    )
+    if res.returncode != 0:
+        print(f"Error building {member}: \n{res.stderr.decode()}")
+        # Show the output
+        print(res.stdout.decode())
+        exit(1)
